@@ -1,0 +1,87 @@
+# Compiled source #
+###################
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+*.hex
+*.eep
+*.obj
+*.cof
+*.elf
+*.map
+*.obj
+*.a90
+*.sym
+*.lnk
+*.lss
+*.d
+*.elf
+*.lst
+*.d
+*.elf
+*.lst
+*.bin
+*.mexa64
+*.mexmaci
+*.mexmaci64
+*.mexglx
+*.mexw32
+*.mexw64
+.dep
+
+# Backup Files #
+################
+*~
+\#*#
+.#*
+*.asv
+
+# Debug #
+#########
+.gdbtkinit
+.kdbgrc*
+
+# Eclipse #
+###########
+.cproject
+.project
+
+# Packages #
+############
+# it's better to unpack these files and commit the raw source
+# git has its own built in compression methods
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Logs and databases #
+######################
+*.log
+*.sql
+*.sqlite
+
+# OS generated files #
+######################
+.DS_Store*
+ehthumbs.db
+Icon?
+Thumbs.db
+desktop.ini
+
+# Executables #
+###############
+main
+anu_xenomai
+
+# Datalogger #
+##############
+matlabdatafiles/*.mat
+

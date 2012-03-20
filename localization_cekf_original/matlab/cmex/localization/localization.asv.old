@@ -1,0 +1,82 @@
+function result = localization(proceedurestrg, varargin)
+
+% Algoritmo TRIAD Improved
+if strcmp(proceedurestrg,'TRIAD')
+    imumeasure = varargin{1};
+    magnetometermeasure = varargin{2};
+    M = varargin{3};
+    G = varargin{4};
+    q_previous = varargin{5};
+
+    q = localization_triad(imumeasure, magnetometermeasure, M, G, q_previous);
+    result = q;
+end
+
+if strcmp(proceedurestrg,'FILTER_EKF_PREDICTION')
+    ekf_structure = varargin{1};
+    imumeasure = varargin{2};
+    G = varargin{3};
+    T = varargin{4};
+
+    [ekf_structure] = localization_filter_prediction('ekf', ekf_structure, imumeasure, G, T);
+    result = ekf_structure;
+end
+
+if strcmp(proceedurestrg,'FILTER_CEKF_PREDICTION')
+    cekf_structure = varargin{1};
+    imumeasure = varargin{2};
+    G = varargin{3};
+    T = varargin{4};
+
+    [cekf_structure] = localization_filter_prediction('cekf', cekf_structure, imumeasure, G, T);
+    result = cekf_structure;
+end
+
+if strcmp(proceedurestrg,'FILTER_EKF_CORRECTION')
+    ekf_structure = varargin{1};
+    gpsmeasure = varargin{2};
+    imumeasure = varargin{3};
+    magnetometermeasure = varargin{4};
+    sonarmeasure = varargin{5};
+    M = varargin{6};
+    G = varargin{7};
+    T = varargin{8};
+
+    [ekf_structure] = localization_filter_correction('ekf', ekf_structure, gpsmeasure, imumeasure, magnetometermeasure, sonarmeasure, M, G, T);
+    result = ekf_structure;
+end
+
+if strcmp(proceedurestrg,'FILTER_CEKF_CORRECTION')
+    cekf_structure = varargin{1};
+    gpsmeasure = varargin{2};
+    imumeasure = varargin{3};
+    magnetometermeasure = varargin{4};
+    sonarmeasure = varargin{5};
+    M = varargin{6};
+    G = varargin{7};
+    T = varargin{8};
+
+    [cekf_structure] = localization_filter_correction('cekf', cekf_structure, gpsmeasure, imumeasure, magnetometermeasure, sonarmeasure, M, G, T);
+    result = cekf_structure;
+end
+
+if strcmp(proceedurestrg,'FILTER_STATE2POSE')
+    pose = varargin{1};
+    ekf_structure = varargin{2};
+    flagpropagateuncertainty = varargin{3};
+
+    pose = localization_filter_state2pose(pose, ekf_structure,flagpropagateuncertainty);
+    result = pose;
+end
+
+if strcmp(proceedurestrg,'RUNGEKUTTA')
+    pose_estimates_runge_kutta_previous = varargin{1};
+    imumeasure = varargin{2};
+    G = varargin{3};
+    T = varargin{4};
+
+    pose_estimates_runge_kutta_current = localization_rungekutta(pose_estimates_runge_kutta_previous, imumeasure, G, T);
+    result = pose_estimates_runge_kutta_current;
+end
+% 
+% 
