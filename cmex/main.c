@@ -89,6 +89,7 @@ int main(void)
 
 	PGMATRIX_PRINT_MATLABFORM(FilterStruct.pX);
 
+	localization_close(&FilterStruct);
 	magnetometer_close(&MagnetometerMeasure);
 	gps_close(&GPSMeasure);
 	imu_close(&IMUMeasure);
