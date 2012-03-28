@@ -94,6 +94,7 @@ int main(void)
 	gps_close(&GPSMeasure);
 	imu_close(&IMUMeasure);
 	sonar_close(&SonarMeasure);
+	localization_close(&FilterStruct);
 
 	return 1;
 }
