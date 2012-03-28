@@ -62,29 +62,3 @@ real_data.sonar_range = sonar_range;
 real_data.sonar_validmeasure = sonar_validmeasure;
 real_data.X0 = X0;
 real_data.P0 = P0;
-
-% real_data.gps_x = gps_x;
-% real_data.gps_y = gps_y;
-% real_data.gps_z = gps_z;
-% real_data.gps_vx = gps_vx;
-% real_data.gps_vy = gps_vy;
-% real_data.gps_vz = gps_vz;
-latitute_radians = -15.766208290000016*pi/180;
-longitude_radians = -47.871715572751150*pi/180.0;
-% The functions converts to ENU, but we want NED, so we change the targets
-[real_data.gps_y real_data.gps_x real_data.gps_z] = ecef2lv(gps_x,gps_y,gps_z,latitute_radians,longitude_radians,1030.0,[6378137.0, 0.081819190842621]);
-real_data.gps_z = -real_data.gps_z;
-
-%Same with the velocities
-n = numel(gps_vx);
-P = zeros(3,n);
-P(1,:) = reshape(gps_vx, [1 n]);
-P(2,:) = reshape(gps_vy, [1 n]);
-P(3,:) = reshape(gps_vz, [1 n]);
-R = [   -sin(longitude_radians)    cos(longitude_radians)  0;
-        -sin(latitute_radians)*cos(longitude_radians) -sin(latitute_radians)*sin(longitude_radians) cos(latitute_radians);
-        cos(latitute_radians)*cos(longitude_radians)    cos(latitute_radians)*sin(longitude_radians) sin(latitute_radians);];
-P = R * P;
-real_data.gps_vy = P(1,:)';
-real_data.gps_vx = P(2,:)';
-real_data.gps_vz = -P(3,:)';
