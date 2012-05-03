@@ -8,6 +8,10 @@ switch filtername
         [kf_structure] = localization_filter_correction_ekf2(kf_structure, gpsmeasure, imumeasure, magnetometermeasure, sonarmeasure, M, G, T);
     case 'cekf'
         [kf_structure] = localization_filter_correction_cekf(kf_structure, gpsmeasure, imumeasure, magnetometermeasure, sonarmeasure, M, G, T);
+    case 'ekf3'
+        [kf_structure] = localization_filter_correction_ekf3(kf_structure, gpsmeasure, imumeasure, magnetometermeasure, sonarmeasure, M, G, T);
+    case 'ekf_decoupled'
+        [kf_structure] = localization_filter_correction_ekf_decoupled(kf_structure, gpsmeasure, imumeasure, magnetometermeasure, sonarmeasure, M, G, T);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -22,10 +26,18 @@ if((magnetometermeasure.flagvalidmeasure))
     %%%
     X = kf_structure.X;
     P = kf_structure.P;
-    if(kf_structure.flagestimateaccelerometerbias)
-        H = [eye(4) zeros(4,9)];
+    if kf_structure.flagestimateaccelerometerbias
+        if kf_structure.flagestimategyrometerbias
+            H = [eye(4) zeros(4,12)];
+        else
+            H = [eye(4) zeros(4,9)];
+        end
     else
-        H = [eye(4) zeros(4,6)];
+        if kf_structure.flagestimategyrometerbias
+            H = [eye(4) zeros(4,9)];
+        else
+            H = [eye(4) zeros(4,6)];
+        end
     end
     [Ym,Py] = ConvertedMeasurementTRIAD('cekf',X, P, imumeasure, magnetometermeasure, M, G, kf_structure.flagestimateaccelerometerbias);
     v = (Ym - H*X);
@@ -38,6 +50,150 @@ if((magnetometermeasure.flagvalidmeasure))
     kf_structure.R_previous_cekf = Rtilde;
     kf_structure.S_previous_cekf = Stilde;
     kf_structure.innovation_previous_cekf = (Ym - H*kf_structure.X);
+end
+
+%%% corrige usando medidas do GPS:
+%%% Fun�ao de medi�ao: [zeros(3,4) eye(3,3) zeros(3,3)]*X
+if gpsmeasure.flagvalidpmeasure
+    X = kf_structure.X;
+    P = kf_structure.P;
+    if kf_structure.flagestimateaccelerometerbias
+        if kf_structure.flagestimategyrometerbias
+            H = [zeros(3,4) eye(3,3) zeros(3,3) zeros(3,3) zeros(3,3)];
+        else
+            H = [zeros(3,4) eye(3,3) zeros(3,3) zeros(3,3)];
+        end
+    else
+        if kf_structure.flagestimategyrometerbias
+            H = [zeros(3,4) eye(3,3) zeros(3,3) zeros(3,3)];
+        else
+            H = [zeros(3,4) eye(3,3) zeros(3,3)];
+        end
+    end
+    v = (gpsmeasure.p - H*X);
+    K = P*(H')*inv(H*P*(H') + gpsmeasure.P_p);
+    kf_structure.X = X + K*v;
+    kf_structure.X(1:4) = quaternions_correctsign(kf_structure.X(1:4), X(1:4));
+    kf_structure.P = (eye(kf_structure.Nstates) - K*H)*P;
+end
+
+%%% corrige usando medidas do GPS:
+%%% Fun�ao de medi�ao: [zeros(3,4) zeros(3,3) eye(3,3)]*X
+if gpsmeasure.flagvalidvmeasure
+    X = kf_structure.X;
+    P = kf_structure.P;
+
+    if kf_structure.flagestimateaccelerometerbias
+        if kf_structure.flagestimategyrometerbias
+            H = [zeros(3,4) zeros(3,3) eyes(3,3) zeros(3,3) zeros(3,3)];
+        else
+            H = [zeros(3,4) zeros(3,3) eye(3,3) zeros(3,3)];
+        end
+    else
+        if kf_structure.flagestimategyrometerbias
+            H = [zeros(3,4) zeros(3,3) eye(3,3) zeros(3,3)];
+        else
+            H = [zeros(3,4) zeros(3,3) eye(3,3)];
+        end
+    end
+    
+    v = (gpsmeasure.v - H*X);
+    K = P*(H')*inv(H*P*(H') + gpsmeasure.P_v);
+    kf_structure.X = X + K*v;
+    kf_structure.X(1:4) = quaternions_correctsign(kf_structure.X(1:4), X(1:4));
+    kf_structure.P = (eye(kf_structure.Nstates) - K*H)*P;
+end
+
+%%% corrige usando medidas do sonar:
+%%% Fun�ao de medi�ao: 2z/(q0^2 - q1^2 - q2^2 + q3^2)
+%%% Fun�ao de medi�ao codificada em estado: X(7)/(X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2);
+if sonarmeasure.flagvalidmeasure
+    X = kf_structure.X;
+    P = kf_structure.P;
+    dHdX1 = -X(7)*(((X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2))^(-2))*2*X(1);
+    dHdX2 =  X(7)*(((X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2))^(-2))*2*X(2);
+    dHdX3 =  X(7)*(((X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2))^(-2))*2*X(3);
+    dHdX4 = -X(7)*(((X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2))^(-2))*2*X(4);
+    dHdX7 =  1/(X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2);
+
+    if kf_structure.flagestimateaccelerometerbias
+        if kf_structure.flagestimategyrometerbias
+            H = [dHdX1 dHdX2 dHdX3 dHdX4 0 0 dHdX7 0 0 0 0 0 0 0 0 0];
+        else
+            H = [dHdX1 dHdX2 dHdX3 dHdX4 0 0 dHdX7 0 0 0 0 0 0];
+        end
+    else
+        if kf_structure.flagestimategyrometerbias
+            H = [dHdX1 dHdX2 dHdX3 dHdX4 0 0 dHdX7 0 0 0 0 0 0];
+        else
+            H = [dHdX1 dHdX2 dHdX3 dHdX4 0 0 dHdX7 0 0 0];
+        end
+    end
+    
+    v = (sonarmeasure.range - (X(7)/(X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2)));
+    K = P*(H')*inv(H*P*(H') + sonarmeasure.rangevariance);
+    kf_structure.X = X + K*v;
+    kf_structure.X(1:4) = quaternions_correctsign(kf_structure.X(1:4), X(1:4));
+    kf_structure.P = (eye(kf_structure.Nstates) - K*H)*P;
+end
+
+%%% corrige a norma do quaternion usando pseudo-medi�oes:
+%%% Fun�ao de medi�ao: 1 = q0^2 + q1^2 + q2^2 + q3^2
+%%% Fun�ao de medi�ao codificada em estado: X(1)^2 + X(2)^2 + X(3)^2 + X(4)^2;
+X = kf_structure.X;
+P = kf_structure.P;
+dHdX1 = 2*X(1);
+dHdX2 = 2*X(2);
+dHdX3 = 2*X(3);
+dHdX4 = 2*X(4);
+
+% TODO: Gyrometer matrices are wrong. Need to fix.
+if kf_structure.flagestimateaccelerometerbias
+    if kf_structure.flagestimategyrometerbias
+        H = [dHdX1 dHdX2 dHdX3 dHdX4 0 0 dHdX7 0 0 0 0 0 0 0 0 0 0 0 0];
+    else
+        H = [dHdX1 dHdX2 dHdX3 dHdX4 0 0 0 0 0 0 0 0 0];
+    end
+else
+    if kf_structure.flagestimategyrometerbias
+        H = [dHdX1 dHdX2 dHdX3 dHdX4 0 0 0 0 0 0 0 0 0];
+    else
+        H = [dHdX1 dHdX2 dHdX3 dHdX4 0 0 0 0 0 0];
+    end
+end
+
+v = (1 - (X(1)^2 + X(2)^2 + X(3)^2 + X(4)^2));
+K = P*(H')*inv(H*P*(H') + kf_structure.R_pseudomeasurementnorm);
+kf_structure.X = X + K*v;
+kf_structure.X(1:4) = quaternions_correctsign(kf_structure.X(1:4), X(1:4));
+kf_structure.P = (eye(kf_structure.Nstates) - K*H)*P;
+
+return
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function  [kf_structure] = localization_filter_correction_ekf3(kf_structure, gpsmeasure, imumeasure, magnetometermeasure, sonarmeasure, M, G, T)
+%%% corrige usando medidas do algoritmo TRIAD: 
+%%% Fun�ao de medi�ao: [eye(4) zeros(4,6)]*X (a medida � dada pelo
+%%% estimador TRIAD.
+%%% Estimar a medi�ao do quaternion assim como da matriz R usando UT;
+if((magnetometermeasure.flagvalidmeasure))
+    %%% 
+    X = kf_structure.X;
+    P = kf_structure.P;
+    if kf_structure.flagestimateaccelerometerbias
+        H = [eye(4) zeros(4,9)];
+    else
+        H = [eye(4) zeros(4,6)];
+    end
+    [Ym,Py] = ConvertedMeasurementTRIAD('ekf3',X, P, imumeasure, magnetometermeasure, M, G, kf_structure.flagestimateaccelerometerbias);
+    v = (Ym - H*X);
+    K = P*(H')*inv(H*P*(H') + Py + kf_structure.R_convertedmeasurementtriad_ekf3);
+    kf_structure.X = X + K*v;
+    X = kf_structure.X;
+    kf_structure.X(1:4) = quaternions_correctsign(kf_structure.X(1:4), X(1:4));
+    kf_structure.P = (eye(kf_structure.Nstates) - K*H)*P;
 end
 
 %%% corrige usando medidas do GPS:
@@ -75,9 +231,9 @@ if gpsmeasure.flagvalidvmeasure
 end
 
 %%% corrige usando medidas do sonar:
-%%% Fun�ao de medi�ao: 2z/(q0^2 - q1^2 - q2^2 + q3^2)
+%%% Fun�ao de medi�ao: z/(q0^2 - q1^2 - q2^2 + q3^2)
 %%% Fun�ao de medi�ao codificada em estado: X(7)/(X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2);
-if sonarmeasure.flagvalidmeasure
+if(sonarmeasure.flagvalidmeasure)
     X = kf_structure.X;
     P = kf_structure.P;
     dHdX1 = -X(7)*(((X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2))^(-2))*2*X(1);
@@ -227,6 +383,229 @@ return
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function  [kf_structure] = localization_filter_correction_ekf_decoupled(kf_structure, gpsmeasure, imumeasure, magnetometermeasure, sonarmeasure, M, G, T)
+
+if magnetometermeasure.flagvalidmeasure
+    X = kf_structure.X;
+    P = kf_structure.P;
+
+    % H is the measurement function for the magnetometer - in this
+    % case, we have:
+    % b = A(q)r
+    % where b is the actual measurement (data from the magnetometer),
+    % A(q) is the DCM written in terms of the quaternions, and r is the
+    % reference frame (the local magnetic field in NED coordinates).
+    % Therefore: h(X) = A(q)r
+    % Here, A(q) = [ q0^2 + q1^2 - q2^2 - q3^2, 2*q1*q2 - 2*q0*q3,                 2*q0*q2 + 2*q1*q3]
+    %              [ 2*q0*q3 + 2*q1*q2,         q0^2 - q1^2 + q2^2 - q3^2,         2*q2*q3 - 2*q0*q1]
+    %              [ 2*q1*q3 - 2*q0*q2,         2*q0*q1 + 2*q2*q3,                 q0^2 - q1^2 - q2^2 + q3^2]
+    % h(X) is the actual magnetometer measurement (normalized) and r is
+    % local magnetic field (normalized as well).
+    % Reference: model: Unscented Filtering for Spacecraft Attitude
+    % Estimation, Crassidis, Markley
+    % Rotation matrix: Stardown interial navigation technlogy, page 48
+    
+    % Calculating the inovation term directly:
+    v = [magnetometermeasure.mx; magnetometermeasure.my; magnetometermeasure.mz;]/sqrt(magnetometermeasure.mx.^2+magnetometermeasure.my.^2+magnetometermeasure.mz.^2) - transpose(quaternions2dcm(X(1:4)))*(M/norm(M));
+    
+    % We also need dh_dX. This is calculated by hand:
+    q0 = X(1);
+    q1 = X(2);
+    q2 = X(3);
+    q3 = X(4);
+    
+    if kf_structure.flagestimateaccelerometerbias
+        dh_dX = zeros(3, 13);
+    else
+        dh_dX = zeros(3, 10);
+    end
+    
+    % First column: derivative in relation to q1
+    % 2*m1*q0 + 2*m2*q3 - 2*m3*q2
+    % 2*m2*q0 - 2*m1*q3 + 2*m3*q1
+    % 2*m1*q2 - 2*m2*q1 + 2*m3*q0
+    dh_dX(1, 1) = 2*M(1)/norm(M)*q0 + 2*M(2)/norm(M)*q3 - 2*M(3)/norm(M)*q2;
+    dh_dX(2, 1) = 2*M(2)/norm(M)*q0 - 2*M(1)/norm(M)*q3 + 2*M(3)/norm(M)*q1;
+    dh_dX(3, 1) = 2*M(1)/norm(M)*q2 - 2*M(2)/norm(M)*q1 + 2*M(3)/norm(M)*q0;
+    % Second column: derivative in relation to q2
+    % 2*m1*q1 + 2*m2*q2 + 2*m3*q3
+    % 2*m1*q2 - 2*m2*q1 + 2*m3*q0
+    % 2*m1*q3 - 2*m2*q0 - 2*m3*q1
+    dh_dX(1, 2) = 2*M(1)/norm(M)*q1 + 2*M(2)/norm(M)*q2 + 2*M(3)/norm(M)*q3;
+    dh_dX(2, 2) = 2*M(1)/norm(M)*q2 - 2*M(2)/norm(M)*q1 + 2*M(3)/norm(M)*q0;
+    dh_dX(3, 2) = 2*M(1)/norm(M)*q3 - 2*M(2)/norm(M)*q0 - 2*M(3)/norm(M)*q1;
+    % Third column: derivative in relation to q3
+    % 2*m2*q1 - 2*m1*q2 - 2*m3*q0
+    % 2*m1*q1 + 2*m2*q2 + 2*m3*q3
+    % 2*m1*q0 + 2*m2*q3 - 2*m3*q2
+    dh_dX(1, 3) = 2*M(2)/norm(M)*q1 - 2*M(1)/norm(M)*q2 - 2*M(3)/norm(M)*q0;
+    dh_dX(2, 3) = 2*M(1)/norm(M)*q1 + 2*M(2)/norm(M)*q2 + 2*M(3)/norm(M)*q3;
+    dh_dX(3, 3) = 2*M(1)/norm(M)*q0 + 2*M(2)/norm(M)*q3 - 2*M(3)/norm(M)*q2;
+    % Fourth column: derivative in relation to q4
+    % 2*m2*q0 - 2*m1*q3 + 2*m3*q1
+    % 2*m3*q2 - 2*m2*q3 - 2*m1*q0
+    % 2*m1*q1 + 2*m2*q2 + 2*m3*q3
+    dh_dX(1, 4) = 2*M(2)/norm(M)*q0 - 2*M(1)/norm(M)*q3 + 2*M(2)/norm(M)*q1;
+    dh_dX(2, 4) = 2*M(3)/norm(M)*q2 - 2*M(2)/norm(M)*q3 - 2*M(3)/norm(M)*q0;
+    dh_dX(3, 4) = 2*M(1)/norm(M)*q1 + 2*M(2)/norm(M)*q2 + 2*M(3)/norm(M)*q3;
+    
+    % For consistency, call dh_dX = H
+    H = dh_dX;
+    % Calculate the innovation covariance S
+    S = H*P*transpose(H) + kf_structure.ekf_decoupled_magnetometer_R;
+    % Kalman gain
+    K = P*transpose(H)*inv(S);
+    kf_structure.X = X + K*v;
+    X = kf_structure.X;
+    kf_structure.X(1:4) = quaternions_correctsign(kf_structure.X(1:4), X(1:4));
+    kf_structure.P = (eye(kf_structure.Nstates) - K*H)*P;
+end
+
+% Accelerometer Correction - Attitude
+% H is the measurement function for the accelerometer - in this
+% case, we have the same as the magnetometer. See above for
+% details.
+
+X = kf_structure.X;
+P = kf_structure.P;
+
+% Calculating the inovation term directly:
+v = [imumeasure.ax; imumeasure.ay; imumeasure.az;]/sqrt(imumeasure.ax.^2+imumeasure.ay.^2+imumeasure.az.^2) - transpose(quaternions2dcm(X(1:4)))*(-1.0*G/norm(G));
+
+% We also need dh_dX. This is calculated by hand:
+q0 = X(1);
+q1 = X(2);
+q2 = X(3);
+q3 = X(4);
+
+if kf_structure.flagestimateaccelerometerbias
+    dh_dX = zeros(3, 13);
+else
+    dh_dX = zeros(3, 10);
+end
+
+% First column: derivative in relation to q1
+% 2*m1*q0 + 2*m2*q3 - 2*m3*q2
+% 2*m2*q0 - 2*m1*q3 + 2*m3*q1
+% 2*m1*q2 - 2*m2*q1 + 2*m3*q0
+dh_dX(1, 1) = 2*G(1)/norm(G)*q0 + 2*G(2)/norm(G)*q3 - 2*G(3)/norm(G)*q2;
+dh_dX(2, 1) = 2*G(2)/norm(G)*q0 - 2*G(1)/norm(G)*q3 + 2*G(3)/norm(G)*q1;
+dh_dX(3, 1) = 2*G(1)/norm(G)*q2 - 2*G(2)/norm(G)*q1 + 2*G(3)/norm(G)*q0;
+% Second column: derivative in relation to q2
+% 2*m1*q1 + 2*m2*q2 + 2*m3*q3
+% 2*m1*q2 - 2*m2*q1 + 2*m3*q0
+% 2*m1*q3 - 2*m2*q0 - 2*m3*q1
+dh_dX(1, 2) = 2*G(1)/norm(G)*q1 + 2*G(2)/norm(G)*q2 + 2*G(3)/norm(G)*q3;
+dh_dX(2, 2) = 2*G(1)/norm(G)*q2 - 2*G(2)/norm(G)*q1 + 2*G(3)/norm(G)*q0;
+dh_dX(3, 2) = 2*G(1)/norm(G)*q3 - 2*G(2)/norm(G)*q0 - 2*G(3)/norm(G)*q1;
+% Third column: derivative in relation to q3
+% 2*m2*q1 - 2*m1*q2 - 2*m3*q0
+% 2*m1*q1 + 2*m2*q2 + 2*m3*q3
+% 2*m1*q0 + 2*m2*q3 - 2*m3*q2
+dh_dX(1, 3) = 2*G(2)/norm(G)*q1 - 2*G(1)/norm(G)*q2 - 2*G(3)/norm(G)*q0;
+dh_dX(2, 3) = 2*G(1)/norm(G)*q1 + 2*G(2)/norm(G)*q2 + 2*G(3)/norm(G)*q3;
+dh_dX(3, 3) = 2*G(1)/norm(G)*q0 + 2*G(2)/norm(G)*q3 - 2*G(3)/norm(G)*q2;
+% Fourth column: derivative in relation to q4
+% 2*m2*q0 - 2*m1*q3 + 2*m3*q1
+% 2*m3*q2 - 2*m2*q3 - 2*m1*q0
+% 2*m1*q1 + 2*m2*q2 + 2*m3*q3
+dh_dX(1, 4) = 2*G(2)/norm(G)*q0 - 2*G(1)/norm(G)*q3 + 2*G(2)/norm(G)*q1;
+dh_dX(2, 4) = 2*G(3)/norm(G)*q2 - 2*G(2)/norm(G)*q3 - 2*G(3)/norm(G)*q0;
+dh_dX(3, 4) = 2*G(1)/norm(G)*q1 + 2*G(2)/norm(G)*q2 + 2*G(3)/norm(G)*q3;
+
+% For consistency, call dh_dX = H
+H = dh_dX;
+% Calculate the innovation covariance S
+S = H*P*transpose(H)+ kf_structure.ekf_decoupled_accelerometer_R;
+% Kalman gain
+K = P*transpose(H)*inv(S);
+kf_structure.X = X + K*v;
+X = kf_structure.X;
+kf_structure.X(1:4) = quaternions_correctsign(kf_structure.X(1:4), X(1:4));
+kf_structure.P = (eye(kf_structure.Nstates) - K*H)*P;
+
+%%% corrige usando medidas do GPS:
+%%% Fun�ao de medi�ao: [zeros(3,4) eye(3,3) zeros(3,3)]*X
+if gpsmeasure.flagvalidpmeasure
+    X = kf_structure.X;
+    P = kf_structure.P;
+    if kf_structure.flagestimateaccelerometerbias
+        H = [zeros(3,4) eye(3,3) zeros(3,3) zeros(3,3)];
+    else
+        H = [zeros(3,4) eye(3,3) zeros(3,3)];
+    end
+    v = (gpsmeasure.p - H*X);
+    K = P*(H')*inv(H*P*(H') + gpsmeasure.P_p);
+    kf_structure.X = X + K*v;
+    kf_structure.X(1:4) = quaternions_correctsign(kf_structure.X(1:4), X(1:4));
+    kf_structure.P = (eye(kf_structure.Nstates) - K*H)*P;
+end
+
+%%% corrige usando medidas do GPS:
+%%% Fun�ao de medi�ao: [zeros(3,4) zeros(3,3) eye(3,3)]*X
+if gpsmeasure.flagvalidvmeasure
+    X = kf_structure.X;
+    P = kf_structure.P;
+    if kf_structure.flagestimateaccelerometerbias
+        H = [zeros(3,4) zeros(3,3) eye(3,3) zeros(3,3)];
+    else
+        H = [zeros(3,4) zeros(3,3) eye(3,3)];
+    end
+    v = (gpsmeasure.v - H*X);
+    K = P*(H')*inv(H*P*(H') + gpsmeasure.P_v);
+    kf_structure.X = X + K*v;
+    kf_structure.X(1:4) = quaternions_correctsign(kf_structure.X(1:4), X(1:4));
+    kf_structure.P = (eye(kf_structure.Nstates) - K*H)*P;
+end
+
+%%% corrige usando medidas do sonar:
+%%% Fun�ao de medi�ao: z/(q0^2 - q1^2 - q2^2 + q3^2)
+%%% Fun�ao de medi�ao codificada em estado: X(7)/(X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2);
+if(sonarmeasure.flagvalidmeasure)
+    X = kf_structure.X;
+    P = kf_structure.P;
+    dHdX1 = -X(7)*(((X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2))^(-2))*2*X(1);
+    dHdX2 =  X(7)*(((X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2))^(-2))*2*X(2);
+    dHdX3 =  X(7)*(((X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2))^(-2))*2*X(3);
+    dHdX4 = -X(7)*(((X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2))^(-2))*2*X(4);
+    dHdX7 =  1/(X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2);
+    if kf_structure.flagestimateaccelerometerbias
+        H = [dHdX1 dHdX2 dHdX3 dHdX4 0 0 dHdX7 0 0 0 0 0 0];
+    else
+        H = [dHdX1 dHdX2 dHdX3 dHdX4 0 0 dHdX7 0 0 0];
+    end
+    v = (sonarmeasure.range - (X(7)/(X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2)));
+    K = P*(H')*inv(H*P*(H') + sonarmeasure.rangevariance);
+    kf_structure.X = X + K*v;
+    kf_structure.X(1:4) = quaternions_correctsign(kf_structure.X(1:4), X(1:4));
+    kf_structure.P = (eye(kf_structure.Nstates) - K*H)*P;
+end
+
+%%% corrige a norma do quaternion usando pseudo-medi�oes:
+%%% Fun�ao de medi�ao: 1 = q0^2 + q1^2 + q2^2 + q3^2
+%%% Fun�ao de medi�ao codificada em estado: X(1)^2 + X(2)^2 + X(3)^2 + X(4)^2;
+X = kf_structure.X;
+P = kf_structure.P;
+dHdX1 = 2*X(1);
+dHdX2 = 2*X(2);
+dHdX3 = 2*X(3);
+dHdX4 = 2*X(4);
+if kf_structure.flagestimateaccelerometerbias
+    H = [dHdX1 dHdX2 dHdX3 dHdX4 0 0 0 0 0 0 0 0 0];
+else
+    H = [dHdX1 dHdX2 dHdX3 dHdX4 0 0 0 0 0 0];
+end
+v = (1 - (X(1)^2 + X(2)^2 + X(3)^2 + X(4)^2));
+K = P*(H')*inv(H*P*(H') + kf_structure.R_pseudomeasurementnorm);
+kf_structure.X = X + K*v;
+kf_structure.X(1:4) = quaternions_correctsign(kf_structure.X(1:4), X(1:4));
+kf_structure.P = (eye(kf_structure.Nstates) - K*H)*P;
+
+return
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function  [kf_structure] = localization_filter_correction_ukf2(kf_structure, gpsmeasure, imumeasure, magnetometermeasure, sonarmeasure, M, G, T)
 %%% corrige usando medidas do algoritmo TRIAD: 
 %%% Fun�ao de medi�ao: [eye(4) zeros(4,6)]*X (a medida � dada pelo
@@ -289,6 +668,8 @@ function [Ym,Py] = ConvertedMeasurementTRIAD(filtername, X, Px, imumeasure, magn
 
 
 switch filtername
+    case 'ekf3'
+        [Ym,Py] = ConvertedMeasurementTRIAD('cekf', X, Px, imumeasure, magnetometermeasure, M, G, flagestimateaccelerometerbias);
     case 'ekf2'
         [Ym,Py] = ConvertedMeasurementTRIAD('cekf', X, Px, imumeasure, magnetometermeasure, M, G, flagestimateaccelerometerbias);
     case 'cekf'

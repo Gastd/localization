@@ -1,6 +1,6 @@
-%função que calcula a atitude apartir dos dados dos magnetômetros e do
-%acelerômetro
-function q = estimator_triad(imumeasure, magnetometermeasure, M, G, q_predicted)
+%funï¿½ï¿½o que calcula a atitude apartir dos dados dos magnetï¿½metros e do
+%acelerï¿½metro
+function q = localization_triad(imumeasure, magnetometermeasure, M, G, q_predicted)
 
 FlagConsiderPrediction = 0;
 if nargin > 4
@@ -9,14 +9,14 @@ end
 
 mag = [magnetometermeasure.mx; magnetometermeasure.my; magnetometermeasure.mz];
 
-%armazena a aceleração (força específica). A acerelação é negada, pois leva-se em conta que os
-%acelerometros medem a força específica sob sua massa e não a aceleração
+%armazena a aceleraï¿½ï¿½o (forï¿½a especï¿½fica). A acerelaï¿½ï¿½o ï¿½ negada, pois leva-se em conta que os
+%acelerometros medem a forï¿½a especï¿½fica sob sua massa e nï¿½o a aceleraï¿½ï¿½o
 a = zeros(3,1);
 a(1) = -imumeasure.ax;
 a(2) = -imumeasure.ay;
 a(3) = -imumeasure.az;
 
-%normalização dos vetores de aceleração e de campo magnético
+%normalizaï¿½ï¿½o dos vetores de aceleraï¿½ï¿½o e de campo magnï¿½tico
 mag = (mag/sqrt(mag(1)^2 + mag(2)^2 + mag(3)^2));
 a = a/sqrt(a(1)^2 + a(2)^2 + a(3)^2);
 G = G/sqrt(G(1)^2 + G(2)^2 + G(3)^2);
@@ -24,7 +24,7 @@ M = M/sqrt(M(1)^2 + M(2)^2 + M(3)^2);
 
 
 % Inicializa as variaveis do corpo. sendo "a" as medidas do acelerometro e
-% "mag" as medidas do magnetometro. Lembrando que a função cross(,)
+% "mag" as medidas do magnetometro. Lembrando que a funï¿½ï¿½o cross(,)
 % representa produto vetorial entre dois vetores.
 aux = a + mag;
 I_b = aux/sqrt(aux(1)^2 + aux(2)^2 + aux(3)^2);
@@ -43,12 +43,12 @@ J_i = aux/sqrt(aux(1)^2 + aux(2)^2 + aux(3)^2);
 
 K_i = cross(I_i,J_i);
 
-% Calculo da matriz de rotação pelo método TRIAD melhorado
+% Calculo da matriz de rotaï¿½ï¿½o pelo mï¿½todo TRIAD melhorado
 R_i_b = ([I_b, J_b, K_b]*([I_i, J_i, K_i]'));
 
-%Criação do quatérnio de rotação. (Deve se observar que a matriz de
-%rotação é do sistema de referência para o sistema do corpo a contrário do
-%que o Padilha escreveu. Dados para a conferência estão em
+%Criaï¿½ï¿½o do quatï¿½rnio de rotaï¿½ï¿½o. (Deve se observar que a matriz de
+%rotaï¿½ï¿½o ï¿½ do sistema de referï¿½ncia para o sistema do corpo a contrï¿½rio do
+%que o Padilha escreveu. Dados para a conferï¿½ncia estï¿½o em
 %http://www.uel.br/proppg/semina/pdf/semina_28_1_22_19.pdf).
 R_b_i = R_i_b';
 q = dcm2quaternions(R_b_i);

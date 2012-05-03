@@ -1,8 +1,8 @@
-% Função que simula o GPS
+% Funï¿½ï¿½o que simula o GPS
 function gpsmeasure = gpsmeasure_init(flagnoise)
 
-P_p = diag([2 2 3].^2); 
-P_v = diag([0.2 0.2 0.3].^2); 
+P_p = diag([5 5 5].^2); 
+P_v = diag([2 2 2].^2); 
 
 gpsmeasure.P_p = flagnoise*P_p;
 gpsmeasure.P_v = flagnoise*P_v;

@@ -24,14 +24,19 @@ end
 flagestimatorTRIAD = 0; %TRIAD (attitude) only estimator
 flagestimatorRungeKutta = 0; %4th order Runge-Kutta position estimation
 flagestimatorEKF2 = 0; % Extended Kalman Filter (attitude+position)
-flagestimatorCEKF = 1; % Correlated measurement Extended Kalman Filter (best) (attitude+position)
+flagestimatorCEKF = 0; % Correlated measurement Extended Kalman Filter (best) (attitude+position)
+flagestimatorEKF3 = 0; % EKF with TRIAD uncertinity modulation, and other goodies (testing)
+flagestimatorEKF_Decoupled = 1; % EKF decoupled magnetometer/accelerometer measurements (testing)
 flagestimatorUKF2 = 0; % Sigma-point UKF (attitude+position)
 
 % Should the system estimate the accelerometer bias?
-flagkf_estimateaccelerometerbias = 0;
+flagkf_estimateaccelerometerbias = 1;
+
+% Should the system estimate the gyrometer bias?
+flagkf_estimategyrometerbias = 0; % Not fully implemented yet!
 
 % Should we plot the attitute in real time? (slow)
-plotRealtimeData = 1;
+plotRealtimeData = 0;
 
 % Cleanup at the end?
 flagcleanup = 1;
@@ -43,21 +48,24 @@ plotAttitude = 1;
 plotPosition = 1;
 plotSpeed = 1;
 plotBiases = 1;
-plotSensorData = 1;
-plotPosition3D = 1;
+plotSensorData = 01;
+plotPosition3D = 0;
 
 % Simulation or real data?
-flaguserealdata = 0; % 0 -> simulation, 1 -> real data
-
-% If real data, specify the data file
-if ispc
-    realdatafilename = 'dados\frente_lara.mat'; %PC
-else
-    realdatafilename = 'dados/frente_lara.mat'; %UNIX / Mac
-end
+flaguserealdata = 1; % 0 -> simulation, 1 -> real data
 
 % In case of a simulation, should we use noise?
 flagnoise = 1;
+
+% Ground truth available, if real data??
+flaggroundtruth = 1;
+
+% If real data, specify the data file
+if ispc
+    realdatafilename = 'dados\anu_localization.mat'; %PC
+else
+    realdatafilename = 'dados/anu_localization.mat'; %UNIX / Mac
+end
 
 % Should we generate data before (with the original data) or generate on
 % the fly?
@@ -72,6 +80,9 @@ trajectory_name = 'trajectory_helix';
 
 if flaguserealdata
     data = read_data(realdatafilename);
+    if flaggroundtruth
+        real_pose = data.real_pose;
+    end
 else
     if flaggeneratedatabefore
         [data, real_pose] = generate_trajectory(trajectory_name, flagnoise);
@@ -87,6 +98,10 @@ G = data.local_gravity';
 M = data.local_magnetic';
 
 % Measurement data structures
+if flaguserealdata
+    flagnoise = 1;
+end
+
 measurements = struct(	'sonar',repmat(sonar(0, flagnoise),length(t),1),...
                         'imu',repmat(imu(0, G, flagnoise),length(t),1),...
                         'gps',repmat(gps(0, flagnoise),length(t),1),...
@@ -133,9 +148,9 @@ if plotRealtimeData
 
     figure; plot3(vehiclestate.y,vehiclestate.x,-vehiclestate.z); hold on; grid on;
     hvehicle = vehicle_draw(vehiclestate);
-    dx = 1000;
-    dy = 1000;
-    dz = 100;
+    dx = 3000;
+    dy = 3000;
+    dz = 1000;
     axis([vehiclestate.x-dx vehiclestate.x+dx vehiclestate.y-dy vehiclestate.y+dy vehiclestate.z-dz vehiclestate.z+dz]);
     xlabel('x (east) [m]'); ylabel('y (north) [m]'); zlabel('z (up) [m]');
     set(gca,'DataAspectRatio',[1 1 1]);
@@ -144,7 +159,7 @@ end
 %% Filter initialization
 
 if flagestimatorEKF2
-    [ekf2_structure] = localization_filter_init(flagkf_estimateaccelerometerbias);
+    [ekf2_structure] = localization_filter_init(flagkf_estimateaccelerometerbias, flagkf_estimategyrometerbias);
     ekf2_structure.X = data.X0;
     ekf2_structure.P = data.P0;
     if flagkf_estimateaccelerometerbias
@@ -161,8 +176,26 @@ if flagestimatorEKF2
     pose_estimates_ekf2 = repmat(pose_create,length(t),1);    
 end
 
+if flagestimatorEKF_Decoupled
+    [ekf_decoupled_structure] = localization_filter_init(flagkf_estimateaccelerometerbias, flagkf_estimategyrometerbias);
+    ekf_decoupled_structure.X = data.X0;
+    ekf_decoupled_structure.P = data.P0;
+    if flagkf_estimateaccelerometerbias
+        parameter_estimates_ekf_decoupled = struct('bias_ax',0,'bias_ay',0,'bias_az',0);
+        parameter_estimates_ekf_decoupled = repmat(parameter_estimates_ekf_decoupled,length(t),1);
+        ekf_decoupled_structure.X(11) = 0; % Initial state estimate for X accelerometer bias
+        ekf_decoupled_structure.X(12) = 0; % Initial state estimate for Y accelerometer bias
+        ekf_decoupled_structure.X(13) = 0; % Initial state estimate for Z accelerometer bias
+        ekf_decoupled_structure.P(11,11) = 0.0;
+        ekf_decoupled_structure.P(12,12) = 0.0;
+        ekf_decoupled_structure.P(13,13) = 0.0;
+    end
+    ekf_decoupled_structure.Preset = ekf_decoupled_structure.P;
+    pose_estimates_ekf_decoupled = repmat(pose_create,length(t),1);    
+end
+
 if flagestimatorCEKF
-    [cekf_structure] = localization_filter_init(flagkf_estimateaccelerometerbias);
+    [cekf_structure] = localization_filter_init(flagkf_estimateaccelerometerbias, flagkf_estimategyrometerbias);
     cekf_structure.X = data.X0;
     cekf_structure.P = data.P0;
     if flagkf_estimateaccelerometerbias
@@ -179,8 +212,52 @@ if flagestimatorCEKF
     pose_estimates_cekf = repmat(pose_create,length(t),1);
 end
 
+if flagestimatorEKF3
+    flagkf_estimategyrometerbias = 0;
+    [ekf3_structure] = localization_filter_init(flagkf_estimateaccelerometerbias, flagkf_estimategyrometerbias);
+    ekf3_structure.X = data.X0;
+    ekf3_structure.P = data.P0;
+    if flagkf_estimateaccelerometerbias
+        parameter_estimates_ekf3 = struct('bias_ax',0,'bias_ay',0,'bias_az',0);
+        if flagkf_estimategyrometerbias
+            ekf3_structure.X(11) = 0; % Initial state estimate for X accelerometer bias
+            ekf3_structure.X(12) = 0; % Initial state estimate for Y accelerometer bias
+            ekf3_structure.X(13) = 0; % Initial state estimate for Z accelerometer bias
+            ekf3_structure.P(11,11) = 0.0;
+            ekf3_structure.P(12,12) = 0.0;
+            ekf3_structure.P(13,13) = 0.0;
+            
+            ekf3_structure.X(14) = 0; % Initial state estimate for X gyrometer bias
+            ekf3_structure.X(15) = 0; % Initial state estimate for Y gyrometer bias
+            ekf3_structure.X(16) = 0; % Initial state estimate for Z gyrometer bias
+            ekf3_structure.P(14,14) = 0.0;
+            ekf3_structure.P(15,15) = 0.0;
+            ekf3_structure.P(16,16) = 0.0;
+        else
+            ekf3_structure.X(11) = 0; % Initial state estimate for X gyrometer bias
+            ekf3_structure.X(12) = 0; % Initial state estimate for Y gyrometer bias
+            ekf3_structure.X(13) = 0; % Initial state estimate for Z gyrometer bias
+            ekf3_structure.P(11,11) = 0.0;
+            ekf3_structure.P(12,12) = 0.0;
+            ekf3_structure.P(13,13) = 0.0;
+        end
+    else
+        if flagkf_estimategyrometerbias
+            ekf3_structure.X(11) = 0; % Initial state estimate for X gyrometer bias
+            ekf3_structure.X(12) = 0; % Initial state estimate for Y gyrometer bias
+            ekf3_structure.X(13) = 0; % Initial state estimate for Z gyrometer bias
+            ekf3_structure.P(11,11) = 0.0;
+            ekf3_structure.P(12,12) = 0.0;
+            ekf3_structure.P(13,13) = 0.0;
+        end
+    end
+    parameter_estimates_ekf3 = repmat(parameter_estimates_ekf3,length(t),1);
+    ekf3_structure.Preset = ekf3_structure.P;
+    pose_estimates_ekf3 = repmat(pose_create,length(t),1);
+end
+
 if flagestimatorUKF2
-    [ukf2_structure] = localization_filter_init(flagkf_estimateaccelerometerbias);
+    [ukf2_structure] = localization_filter_init(flagkf_estimateaccelerometerbias, flagkf_estimategyrometerbias);
     ukf2_structure.X = data.X0;
     ukf2_structure.P = data.P0;
     if flagkf_estimateaccelerometerbias
@@ -279,7 +356,11 @@ for n=1:length(t),
     %%% TRIAD-based attitude estimation
     if flagestimatorTRIAD
         if measurements.magnetometer(n).flagvalidmeasure
-            q_previous = [pose_estimates_triad(n-1).q0 pose_estimates_triad(n-1).q1 pose_estimates_triad(n-1).q2 pose_estimates_triad(n-1).q3]';
+            if n ~= 1
+                q_previous = [pose_estimates_triad(n-1).q0 pose_estimates_triad(n-1).q1 pose_estimates_triad(n-1).q2 pose_estimates_triad(n-1).q3]';
+            else
+                q_previous = [pose_estimates_triad(1).q0 pose_estimates_triad(1).q1 pose_estimates_triad(1).q2 pose_estimates_triad(1).q3]';
+            end
             q = mexlocalization('TRIAD',measurements.imu(n), measurements.magnetometer(n), M, G, q_previous);
             pose_estimates_triad(n).q0 = q(1);
             pose_estimates_triad(n).q1 = q(2);
@@ -322,6 +403,28 @@ for n=1:length(t),
     end
 
     %%% Extended Kalman Filter based estimation
+    if flagestimatorEKF_Decoupled
+        [ekf_decoupled_structure] = localization('FILTER_EKF_DECOUPLED_PREDICTION', ekf_decoupled_structure, measurements.imu(n), G, Ts);
+        [ekf_decoupled_structure] = localization('FILTER_EKF_DECOUPLED_CORRECTION', ekf_decoupled_structure, measurements.gps(n), measurements.imu(n), measurements.magnetometer(n), measurements.sonar(n), M, G, Ts);
+
+        pose_estimates_ekf_decoupled(n) = localization('FILTER_STATE2POSE',pose_estimates_ekf_decoupled(n), ekf_decoupled_structure, 1);
+        if flagkf_estimateaccelerometerbias
+            parameter_estimates_ekf_decoupled(n).bias_ax = ekf_decoupled_structure.X(11);
+            parameter_estimates_ekf_decoupled(n).bias_ay = ekf_decoupled_structure.X(12);
+            parameter_estimates_ekf_decoupled(n).bias_az = ekf_decoupled_structure.X(13);
+        end
+        vehiclestate.x = pose_estimates_ekf_decoupled(n).x;
+        vehiclestate.y = pose_estimates_ekf_decoupled(n).y;
+        vehiclestate.z = pose_estimates_ekf_decoupled(n).z;
+        position_estimates.x(n) = vehiclestate.x;
+        position_estimates.y(n) = vehiclestate.y;
+        position_estimates.z(n) = vehiclestate.z;
+        vehiclestate.roll = pose_estimates_ekf_decoupled(n).roll;
+        vehiclestate.pitch = pose_estimates_ekf_decoupled(n).pitch;
+        vehiclestate.yaw = pose_estimates_ekf_decoupled(n).yaw;
+    end
+    
+    %%% Extended Kalman Filter based estimation
     if flagestimatorEKF2
         [ekf2_structure] = mexlocalization('FILTER_EKF2_PREDICTION', ekf2_structure, measurements.imu(n), G, Ts);
         [ekf2_structure] = mexlocalization('FILTER_EKF2_CORRECTION', ekf2_structure, measurements.gps(n), measurements.imu(n), measurements.magnetometer(n), measurements.sonar(n), M, G, Ts);
@@ -363,6 +466,36 @@ for n=1:length(t),
         vehiclestate.roll = pose_estimates_cekf(n).roll;
         vehiclestate.pitch = pose_estimates_cekf(n).pitch;
         vehiclestate.yaw = pose_estimates_cekf(n).yaw;
+    end
+    
+    if flagestimatorEKF3
+        % Modulate the process covariance R based on the acceleration
+%         accel_error = abs(norm(G) - sqrt(measurements.imu(n).ax.^2 + measurements.imu(n).ay.^2 + measurements.imu(n).az.^2));
+%         ekf3_structure.R_convertedmeasurementtriad_ekf3 = exp(200*accel_error)*diag([0.01 0.01 0.01 0.01]);
+%         if(ekf3_structure.R_convertedmeasurementtriad_ekf3(1,1) > 1e4)
+%             ekf3_structure.R_convertedmeasurementtriad_ekf3 = 1e4*diag([0.01 0.01 0.01 0.01]);
+%         end
+        measurements.magnetometer(n).flagvalidmeasure = 0;
+        ekf3_structure.R_convertedmeasurementtriad_ekf3 = 1e20*diag([0.01 0.01 0.01 0.01]);
+        [ekf3_structure] = localization('FILTER_EKF3_PREDICTION', ekf3_structure, measurements.imu(n), G, Ts);
+        [ekf3_structure] = localization('FILTER_EKF3_CORRECTION', ekf3_structure, measurements.gps(n), measurements.imu(n), measurements.magnetometer(n), measurements.sonar(n), M, G, Ts);
+
+        pose_estimates_ekf3(n) = localization('FILTER_STATE2POSE',pose_estimates_ekf3(n), ekf3_structure, 1);
+
+        if flagkf_estimateaccelerometerbias
+            parameter_estimates_ekf3(n).bias_ax = ekf3_structure.X(11);
+            parameter_estimates_ekf3(n).bias_ay = ekf3_structure.X(12);
+            parameter_estimates_ekf3(n).bias_az = ekf3_structure.X(13);
+        end
+        vehiclestate.x = pose_estimates_ekf3(n).x;
+        vehiclestate.y = pose_estimates_ekf3(n).y;
+        vehiclestate.z = pose_estimates_ekf3(n).z;
+        position_estimates.x(n) = vehiclestate.x;
+        position_estimates.y(n) = vehiclestate.y;
+        position_estimates.z(n) = vehiclestate.z;
+        vehiclestate.roll = pose_estimates_ekf3(n).roll;
+        vehiclestate.pitch = pose_estimates_ekf3(n).pitch;
+        vehiclestate.yaw = pose_estimates_ekf3(n).yaw;
     end
     
     if flagestimatorUKF2
@@ -408,13 +541,15 @@ linewidth = 2;
 
 % TRIAD Estimates
 if flagestimatorTRIAD
+    lineformat = 'b-';
+    estimatorname = 'TRIAD';
     figure;
     I = find([measurements.magnetometer.flagvalidmeasure]~=0);
     subplot(311); hold on;
     data = [pose_estimates_triad.roll];
     plot(t(I),data(I)*180/pi,lineformat,'LineWidth',linewidth);
-    ylabel('roll [deg]'); 
-    title(['Attitude from TRIAD: ',estimatorname]);
+    ylabel('roll [deg]');
+    title(['Attitude from: ',estimatorname]);
     subplot(312); hold on;
     data = [pose_estimates_triad.pitch];
     plot(t(I),data(I)*180/pi,lineformat,'LineWidth',linewidth);
@@ -423,9 +558,40 @@ if flagestimatorTRIAD
     data = [pose_estimates_triad.yaw];
     plot(t(I),data(I)*180/pi,lineformat,'LineWidth',linewidth);
     ylabel('yaw [deg]'); xlabel('t [s]');
+    
+    if flaguserealdata
+        if flaggroundtruth
+            subplot(311); hold on;
+            e = [real_pose.roll]; e = atan2(sin(e),cos(e));
+            plot(t,(e)*180/pi,'-.k','LineWidth',1);
+            legend('Estimated data','Real data');
+            subplot(312); hold on;
+            e = [real_pose.pitch]; e = atan2(sin(e),cos(e));
+            plot(t,(e)*180/pi,'-.k','LineWidth',1);
+            legend('Estimated data','Real data');
+            subplot(313); hold on;
+            e = [real_pose.yaw]; e = atan2(sin(e),cos(e));
+            plot(t,(e)*180/pi,'-.k','LineWidth',1);
+            legend('Estimated data','Real data');
+        end
+    else if flaggeneratedatabefore %If we are simulating, we also plot the real information
+            subplot(311); hold on;
+            e = [real_pose.roll]; e = atan2(sin(e),cos(e));
+            plot(t,(e)*180/pi,'-.k','LineWidth',1);
+            legend('Estimated data','Real data');
+            subplot(312); hold on;
+            e = [real_pose.pitch]; e = atan2(sin(e),cos(e));
+            plot(t,(e)*180/pi,'-.k','LineWidth',1);
+            legend('Estimated data','Real data');
+            subplot(313); hold on;
+            e = [real_pose.yaw]; e = atan2(sin(e),cos(e));
+            plot(t,(e)*180/pi,'-.k','LineWidth',1);
+            legend('Estimated data','Real data');
+        end
+    end 
 end
 
-for nestimator=1:4
+for nestimator=1:6
     switch nestimator
         case 1
             flagplot = flagestimatorEKF2;
@@ -459,7 +625,25 @@ for nestimator=1:4
                 parameter_estimates = parameter_estimates_ukf2;
             end
             lineformat = 'g-';
-            estimatorname = 'UKF2';
+            estimatorname = 'UKF2';            
+        case 5
+            flagplot = flagestimatorEKF3;
+            if (flagplot == 0) continue; end
+            pose_estimates = pose_estimates_ekf3;
+            if flagkf_estimateaccelerometerbias
+                parameter_estimates = parameter_estimates_ekf3;
+            end
+            lineformat = 'y-';
+            estimatorname = 'EKF3';
+        case 6
+            flagplot = flagestimatorEKF_Decoupled;
+            if (flagplot == 0) continue; end
+            pose_estimates = pose_estimates_ekf_decoupled;
+            if flagkf_estimateaccelerometerbias
+                parameter_estimates = parameter_estimates_ekf_decoupled;
+            end
+            lineformat = 'm-';
+            estimatorname = 'EKF Decoupled';
     end
 
     if plotQuaternions
@@ -501,8 +685,23 @@ for nestimator=1:4
         plot(t,([pose_estimates.q3]),lineformat,'LineWidth',linewidth);
         ylabel('{q3}');
         xlabel('t [s]');
-
+        
         if flaguserealdata
+            if flaggroundtruth
+                subplot(411); hold on;
+                plot(t,([real_pose.q0]),'-.k','LineWidth',1);
+                legend('Estimated data','Real data');
+                subplot(412); hold on;
+                plot(t,([real_pose.q1]),'-.k','LineWidth',1);
+                legend('Estimated data','Real data');
+                subplot(413); hold on;
+                plot(t,([real_pose.q2]),'-.k','LineWidth',1);
+                legend('Estimated data','Real data');
+                subplot(414); hold on;
+                plot(t,([real_pose.q3]),'-.k','LineWidth',1);
+                legend('Estimated data','Real data');
+                
+            end
         else if flaggeneratedatabefore %If we are simulating, we also plot the real information
                 subplot(411); hold on;
                 plot(t,([real_pose.q0]),'-.k','LineWidth',1);
@@ -549,6 +748,20 @@ for nestimator=1:4
         ylabel('yaw [deg]'); xlabel('t [s]');
 
         if flaguserealdata
+            if flaggroundtruth
+                subplot(311); hold on;
+                e = [real_pose.roll]; e = atan2(sin(e),cos(e));
+                plot(t,(e)*180/pi,'-.k','LineWidth',1);
+                legend('Estimated data','Real data');
+                subplot(312); hold on;
+                e = [real_pose.pitch]; e = atan2(sin(e),cos(e));
+                plot(t,(e)*180/pi,'-.k','LineWidth',1);
+                legend('Estimated data','Real data');
+                subplot(313); hold on;
+                e = [real_pose.yaw]; e = atan2(sin(e),cos(e));
+                plot(t,(e)*180/pi,'-.k','LineWidth',1);
+                legend('Estimated data','Real data');
+            end
         else if flaggeneratedatabefore %If we are simulating, we also plot the real information
                 subplot(311); hold on;
                 e = [real_pose.roll]; e = atan2(sin(e),cos(e));
@@ -595,6 +808,17 @@ for nestimator=1:4
         ylabel('z [m]'); xlabel('t [s]');
         
         if flaguserealdata
+            if flaggroundtruth
+                subplot(311); hold on;
+                plot(t,([real_pose.x]),'-.k','LineWidth',1);
+                legend('Estimated data','Real data');
+                subplot(312); hold on;
+                plot(t,([real_pose.y]),'-.k','LineWidth',1);
+                legend('Estimated data','Real data');
+                subplot(313); hold on;
+                plot(t,([real_pose.z]),'-.k','LineWidth',1);
+                legend('Estimated data','Real data');
+            end
         else if flaggeneratedatabefore %If we are simulating, we also plot the real information
                 subplot(311); hold on;
                 plot(t,([real_pose.x]),'-.k','LineWidth',1);
@@ -638,6 +862,17 @@ for nestimator=1:4
         ylabel('v_z [m/s]'); xlabel('t [s]');
         
         if flaguserealdata
+            if flaggroundtruth
+                subplot(311); hold on;
+                plot(t,([real_pose.dx_dt]),'-.k','LineWidth',1);
+                legend('Estimated data','Real data');
+                subplot(312); hold on;
+                plot(t,([real_pose.dy_dt]),'-.k','LineWidth',1);
+                legend('Estimated data','Real data');
+                subplot(313); hold on;
+                plot(t,([real_pose.dz_dt]),'-.k','LineWidth',1);
+                legend('Estimated data','Real data'); 
+            end
         else if flaggeneratedatabefore %If we are simulating, we also plot the real information
                 subplot(311); hold on;
                 plot(t,([real_pose.dx_dt]),'-.k','LineWidth',1);
@@ -742,7 +977,7 @@ end
 %% Cleanup
 
 if flagcleanup
-    clear I dx dy dz hvehicle plotRealtimeData vehiclestate flagcleanup position_estimates plotSensorData G e plot_data Igps M Ts cekf_structure ekf2_structure estimatorname flagestimatorCEKF flagestimatorEKF2 flagestimatorRungeKutta flagestimatorTRIAD flagkf_estimateaccelerometerbias flagnoise flagplot flagplot3sigma flaguserealdata lineformat linewidth n nestimator parameter_estimates plotAttitude plotBiases plotPosition plotPosition3D plotQuaternions plotSpeed pose_estimates realdatafilename rpy sigmacolor t trajectory_name flaggeneratedatabefore flagestimatorUKF2
+    clear flagestimatorEKF3 flaggroundtruth I dx dy dz hvehicle plotRealtimeData vehiclestate flagcleanup position_estimates plotSensorData G e plot_data Igps M Ts cekf_structure ekf2_structure estimatorname flagestimatorCEKF flagestimatorEKF2 flagestimatorRungeKutta flagestimatorTRIAD flagkf_estimateaccelerometerbias flagnoise flagplot flagplot3sigma flaguserealdata lineformat linewidth n nestimator parameter_estimates plotAttitude plotBiases plotPosition plotPosition3D plotQuaternions plotSpeed pose_estimates realdatafilename rpy sigmacolor t trajectory_name flaggeneratedatabefore flagestimatorUKF2
 end
 
 return;

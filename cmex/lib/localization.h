@@ -13,6 +13,8 @@ typedef struct{
 	PGMATRIX pQ;
 	PGMATRIX pR_convertedmeasurementtriad;
 	PGMATRIX pR_pseudomeasurementnorm;
+    PGMATRIX pR_magnetometer; // to use with EKF Decoupled
+    PGMATRIX pR_accelerometer; // to use with EKF Decoupled
 	PGMATRIX pS_previous_cekf; // para uso com o CEKF
 	PGMATRIX pR_previous_cekf; // para uso com o CEKF
 	PGMATRIX pA_imu_P_imu_cekf; // para uso com o CEKF
@@ -46,6 +48,7 @@ typedef struct{
 #define LOCALIZATION_ALGORITHMCODE_EKF2		1
 #define LOCALIZATION_ALGORITHMCODE_CEKF		2
 #define LOCALIZATION_ALGORITHMCODE_UKF2		3
+#define LOCALIZATION_ALGORITHMCODE_EKF_DECOUPLED 4
 
 int localization_init(int AlgorithmCode, int FlagEstimateAccelerometerBias, PLOCALIZATIONFILTERSTRUCT pFilterStruct);
 int localization_close(PLOCALIZATIONFILTERSTRUCT pFilterStruct);

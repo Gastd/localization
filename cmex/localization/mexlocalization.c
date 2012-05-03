@@ -4,12 +4,12 @@
 #include <string.h>
 
 #ifdef SYSTEM_WINDOWS
-  #include "WINPERFTime.h"
+#include "WINPERFTime.h"
 #endif 
 #ifdef SYSTEM_LINUX
-  #include <sys/time.h>
-  #include <unistd.h> /* for libc5 */
-  #include <sys/io.h> /* for glibc */
+#include <sys/time.h>
+#include <unistd.h> /* for libc5 */
+#include <sys/io.h> /* for glibc */
 #endif 
 
 #define GMATRIX_PRINTCOMMAND mexPrintf
@@ -26,25 +26,30 @@
 mxArray *SetFilterStruct(PLOCALIZATIONFILTERSTRUCT pFilterStruct)
 {
     const char *field_names_ekf2[] = {"flagestimateaccelerometerbias","Nstates","X","P","Preset" ,"Q_ekf",
-                                     "R_pseudomeasurementnorm","R_convertedmeasurementtriad_ekf"};
+            "R_pseudomeasurementnorm","R_convertedmeasurementtriad_ekf"};
+    const char *field_names_ekf_decoupled[] = {"flagestimateaccelerometerbias","Nstates","X","P","Preset" ,"Q_ekf_decoupled",
+            "R_pseudomeasurementnorm","ekf_decoupled_magnetometer_R","ekf_decoupled_accelerometer_R"};
     const char *field_names_ukf2[] = {"flagestimateaccelerometerbias","Nstates","X","P","Preset" ,"Xsigma" ,"Wsigma","Q_ukf",
-                                     "R_pseudomeasurementnorm","R_convertedmeasurementtriad_ukf"};
+            "R_pseudomeasurementnorm","R_convertedmeasurementtriad_ukf"};
     const char *field_names_cekf[] = {"flagestimateaccelerometerbias","Nstates","X","P","Preset" ,"Q_cekf",
-                                     "R_pseudomeasurementnorm","R_convertedmeasurementtriad_cekf",
-                                     "S_previous_cekf","R_previous_cekf","A_imu_P_imu_cekf","innovation_previous_cekf"};
+            "R_pseudomeasurementnorm","R_convertedmeasurementtriad_cekf",
+            "S_previous_cekf","R_previous_cekf","A_imu_P_imu_cekf","innovation_previous_cekf"};
     mxArray *pmxarray;
     int dims[2] = {1, 1};
 
     switch(pFilterStruct->AlgorithmCode){
-    case LOCALIZATION_ALGORITHMCODE_EKF2:
-        pmxarray = mxCreateStructArray(2, dims, (sizeof(field_names_ekf2)/sizeof(*field_names_ekf2)), field_names_ekf2);
-        break;
-    case LOCALIZATION_ALGORITHMCODE_UKF2:
-        pmxarray = mxCreateStructArray(2, dims, (sizeof(field_names_ukf2)/sizeof(*field_names_ukf2)), field_names_ukf2);
-        break;
-    case LOCALIZATION_ALGORITHMCODE_CEKF:
-        pmxarray = mxCreateStructArray(2, dims, (sizeof(field_names_cekf)/sizeof(*field_names_cekf)), field_names_cekf);
-        break;
+        case LOCALIZATION_ALGORITHMCODE_EKF2:
+            pmxarray = mxCreateStructArray(2, dims, (sizeof(field_names_ekf2)/sizeof(*field_names_ekf2)), field_names_ekf2);
+            break;
+        case LOCALIZATION_ALGORITHMCODE_EKF_DECOUPLED:
+            pmxarray = mxCreateStructArray(2, dims, (sizeof(field_names_ekf_decoupled)/sizeof(*field_names_ekf_decoupled)), field_names_ekf_decoupled);
+            break;
+        case LOCALIZATION_ALGORITHMCODE_UKF2:
+            pmxarray = mxCreateStructArray(2, dims, (sizeof(field_names_ukf2)/sizeof(*field_names_ukf2)), field_names_ukf2);
+            break;
+        case LOCALIZATION_ALGORITHMCODE_CEKF:
+            pmxarray = mxCreateStructArray(2, dims, (sizeof(field_names_cekf)/sizeof(*field_names_cekf)), field_names_cekf);
+            break;
     }
 
     mxSetField(pmxarray, 0, "flagestimateaccelerometerbias", mxCreateDoubleScalar((double)(pFilterStruct->FlagEstimateAccelerometerBias)));  
@@ -52,43 +57,49 @@ mxArray *SetFilterStruct(PLOCALIZATIONFILTERSTRUCT pFilterStruct)
     mxSetField(pmxarray, 0, "X", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pX));  
     mxSetField(pmxarray, 0, "P", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pP));  
     mxSetField(pmxarray, 0, "Preset", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pPreset));  
-    
+
     switch(pFilterStruct->AlgorithmCode){
-    case LOCALIZATION_ALGORITHMCODE_EKF2:
-        mxSetField(pmxarray, 0, "Q_ekf", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pQ));  
-        mxSetField(pmxarray, 0, "R_pseudomeasurementnorm", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pR_pseudomeasurementnorm));  
-        mxSetField(pmxarray, 0, "R_convertedmeasurementtriad_ekf", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pR_convertedmeasurementtriad));  
-        break;
-    case LOCALIZATION_ALGORITHMCODE_UKF2:
-        mxSetField(pmxarray, 0, "Q_ukf", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pQ));  
-        mxSetField(pmxarray, 0, "Xsigma", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pXsigma_ukf));  
-        mxSetField(pmxarray, 0, "Wsigma", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pWsigma_ukf));  
-        mxSetField(pmxarray, 0, "R_pseudomeasurementnorm", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pR_pseudomeasurementnorm));  
-        mxSetField(pmxarray, 0, "R_convertedmeasurementtriad_ukf", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pR_convertedmeasurementtriad));  
-        break;
-    case LOCALIZATION_ALGORITHMCODE_CEKF:
-        mxSetField(pmxarray, 0, "Q_cekf", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pQ));  
-        mxSetField(pmxarray, 0, "R_pseudomeasurementnorm", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pR_pseudomeasurementnorm));  
-        mxSetField(pmxarray, 0, "R_convertedmeasurementtriad_cekf", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pR_convertedmeasurementtriad));  
-        mxSetField(pmxarray, 0, "S_previous_cekf", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pS_previous_cekf));  
-        mxSetField(pmxarray, 0, "R_previous_cekf", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pR_previous_cekf));  
-        mxSetField(pmxarray, 0, "A_imu_P_imu_cekf", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pA_imu_P_imu_cekf));  
-        mxSetField(pmxarray, 0, "innovation_previous_cekf", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pinnovation_previous_cekf));  
-        break;
+        case LOCALIZATION_ALGORITHMCODE_EKF2:
+            mxSetField(pmxarray, 0, "Q_ekf", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pQ));
+            mxSetField(pmxarray, 0, "R_pseudomeasurementnorm", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pR_pseudomeasurementnorm));
+            mxSetField(pmxarray, 0, "R_convertedmeasurementtriad_ekf", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pR_convertedmeasurementtriad));
+            break;
+        case LOCALIZATION_ALGORITHMCODE_EKF_DECOUPLED:
+            mxSetField(pmxarray, 0, "Q_ekf_decoupled", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pQ));
+            mxSetField(pmxarray, 0, "R_pseudomeasurementnorm", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pR_pseudomeasurementnorm));
+            mxSetField(pmxarray, 0, "ekf_decoupled_magnetometer_R", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pR_magnetometer));
+            mxSetField(pmxarray, 0, "ekf_decoupled_accelerometer_R", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pR_accelerometer));
+            break;
+        case LOCALIZATION_ALGORITHMCODE_UKF2:
+            mxSetField(pmxarray, 0, "Q_ukf", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pQ));
+            mxSetField(pmxarray, 0, "Xsigma", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pXsigma_ukf));
+            mxSetField(pmxarray, 0, "Wsigma", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pWsigma_ukf));
+            mxSetField(pmxarray, 0, "R_pseudomeasurementnorm", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pR_pseudomeasurementnorm));
+            mxSetField(pmxarray, 0, "R_convertedmeasurementtriad_ukf", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pR_convertedmeasurementtriad));
+            break;
+        case LOCALIZATION_ALGORITHMCODE_CEKF:
+            mxSetField(pmxarray, 0, "Q_cekf", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pQ));
+            mxSetField(pmxarray, 0, "R_pseudomeasurementnorm", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pR_pseudomeasurementnorm));
+            mxSetField(pmxarray, 0, "R_convertedmeasurementtriad_cekf", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pR_convertedmeasurementtriad));
+            mxSetField(pmxarray, 0, "S_previous_cekf", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pS_previous_cekf));
+            mxSetField(pmxarray, 0, "R_previous_cekf", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pR_previous_cekf));
+            mxSetField(pmxarray, 0, "A_imu_P_imu_cekf", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pA_imu_P_imu_cekf));
+            mxSetField(pmxarray, 0, "innovation_previous_cekf", PGMATRIX_COPY_TO_MXARRAY(pFilterStruct->pinnovation_previous_cekf));
+            break;
     }
-    
+
     return pmxarray;
 }
 
 void GetFilterStruct(int AlgorithmCode, PLOCALIZATIONFILTERSTRUCT pFilterStruct, const mxArray *pmxarray)
 {
     int FlagPrint = 0;
-//    mxArray *pmxdataarray;
-    
+    //    mxArray *pmxdataarray;
+
     if(!mxIsStruct(pmxarray)){
         mexErrMsgTxt("pmxarray should be a structure.");
     }
-   	pFilterStruct->AlgorithmCode = AlgorithmCode;
+    pFilterStruct->AlgorithmCode = AlgorithmCode;
     pFilterStruct->FlagEstimateAccelerometerBias = (int) mxGetScalar(mxGetField(pmxarray, 0, "flagestimateaccelerometerbias")); 
     pFilterStruct->Nstates = (int) mxGetScalar(mxGetField(pmxarray, 0, "Nstates")); 
     if (FlagPrint){
@@ -109,6 +120,12 @@ void GetFilterStruct(int AlgorithmCode, PLOCALIZATIONFILTERSTRUCT pFilterStruct,
     if(AlgorithmCode==LOCALIZATION_ALGORITHMCODE_EKF2){
         pFilterStruct->pQ = PGMATRIX_ALLOC_FROM_MXARRAY(mxGetField(pmxarray, 0, "Q_ekf")); 
         pFilterStruct->pR_convertedmeasurementtriad = PGMATRIX_ALLOC_FROM_MXARRAY(mxGetField(pmxarray, 0, "R_convertedmeasurementtriad_ekf")); 
+    }
+    if(AlgorithmCode==LOCALIZATION_ALGORITHMCODE_EKF_DECOUPLED){
+        pFilterStruct->pQ = PGMATRIX_ALLOC_FROM_MXARRAY(mxGetField(pmxarray, 0, "Q_ekf_decoupled"));
+        pFilterStruct->pR_convertedmeasurementtriad = PGMATRIX_ALLOC_FROM_MXARRAY(mxGetField(pmxarray, 0, "R_convertedmeasurementtriad_ekf"));
+        pFilterStruct->pR_magnetometer = PGMATRIX_ALLOC_FROM_MXARRAY(mxGetField(pmxarray, 0, "ekf_decoupled_magnetometer_R"));
+        pFilterStruct->pR_accelerometer = PGMATRIX_ALLOC_FROM_MXARRAY(mxGetField(pmxarray, 0, "ekf_decoupled_accelerometer_R"));
     }
     if(AlgorithmCode==LOCALIZATION_ALGORITHMCODE_CEKF){
         pFilterStruct->pQ = PGMATRIX_ALLOC_FROM_MXARRAY(mxGetField(pmxarray, 0, "Q_cekf")); 
@@ -149,7 +166,7 @@ void GetGPSMeasure(PGPSMEASURE pGPSMeasure, const mxArray *pmxarray)
 void GetSonarMeasure(PSONARMEASURE pSonarMeasure, const mxArray *pmxarray)
 {
     PGMATRIX pMatrix;
-    
+
     if(!mxIsStruct(pmxarray)){
         mexErrMsgTxt("pmxarray should be a structure.");
     }
@@ -196,52 +213,52 @@ void GetMagnetometerMeasure(PMAGNETOMETERMEASURE pMagnetometerMeasure, const mxA
 
 PGMATRIX GetM(const mxArray *pmxarray)
 {
-   	if ( (mxGetM(pmxarray)!=3) ){
-		mexErrMsgTxt("M must have 3 rows.");
-	}
-   	if ( (mxGetN(pmxarray)!=1) ){
-		mexErrMsgTxt("M must have 1 column.");
-	}
+    if ( (mxGetM(pmxarray)!=3) ){
+        mexErrMsgTxt("M must have 3 rows.");
+    }
+    if ( (mxGetN(pmxarray)!=1) ){
+        mexErrMsgTxt("M must have 1 column.");
+    }
     return(PGMATRIX_ALLOC_FROM_MXARRAY(pmxarray));
 }
 
 PGMATRIX GetG(const mxArray *pmxarray)
 {
-   	if ( (mxGetM(pmxarray)!=3) ){
-		mexErrMsgTxt("G must have 3 rows.");
-	}
-   	if ( (mxGetN(pmxarray)!=1) ){
-		mexErrMsgTxt("G must have 1 column.");
-	}
+    if ( (mxGetM(pmxarray)!=3) ){
+        mexErrMsgTxt("G must have 3 rows.");
+    }
+    if ( (mxGetN(pmxarray)!=1) ){
+        mexErrMsgTxt("G must have 1 column.");
+    }
     return(PGMATRIX_ALLOC_FROM_MXARRAY(pmxarray));
 }
 
 PQUATERNIONS Getq(const mxArray *pmxarray)
 {
-   	if ( (mxGetM(pmxarray)!=4) ){
-		mexErrMsgTxt("q must have 4 rows.");
-	}
-   	if ( (mxGetN(pmxarray)!=1) ){
-		mexErrMsgTxt("q must have 1 column.");
-	}
+    if ( (mxGetM(pmxarray)!=4) ){
+        mexErrMsgTxt("q must have 4 rows.");
+    }
+    if ( (mxGetN(pmxarray)!=1) ){
+        mexErrMsgTxt("q must have 1 column.");
+    }
     return(PGMATRIX_ALLOC_FROM_MXARRAY(pmxarray));
 }
 
 double GetT(const mxArray *pmxarray)
 {
-   	if ( (mxGetM(pmxarray)!=1) ){
-		mexErrMsgTxt("T must have 1 rows.");
-	}
-   	if ( (mxGetN(pmxarray)!=1) ){
-		mexErrMsgTxt("T must have 1 column.");
-	}
+    if ( (mxGetM(pmxarray)!=1) ){
+        mexErrMsgTxt("T must have 1 rows.");
+    }
+    if ( (mxGetN(pmxarray)!=1) ){
+        mexErrMsgTxt("T must have 1 column.");
+    }
     return(mxGetScalar(pmxarray));
 }
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-	int		strsize;
-	char *pLocalizationFunctionName;
+    int		strsize;
+    char *pLocalizationFunctionName;
     LOCALIZATIONFILTERSTRUCT FilterStruct;
     IMUMEASURE IMUMeasure;
     GPSMEASURE GPSMeasure;
@@ -258,12 +275,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     struct timeval     time;
 #endif
 
-	/* Processar as entradas */
-   	strsize = (mxGetM(prhs[0])*mxGetN(prhs[0])) + 1;
-	pLocalizationFunctionName = (char *) mxCalloc(strsize, sizeof(char));
-	if(mxGetString(prhs[0],pLocalizationFunctionName,strsize)!=0){
-		mexErrMsgTxt("Not enough space to allocate buffer for pLocalizationFunctionName.");
-	}
+    /* Processar as entradas */
+    strsize = (mxGetM(prhs[0])*mxGetN(prhs[0])) + 1;
+    pLocalizationFunctionName = (char *) mxCalloc(strsize, sizeof(char));
+    if(mxGetString(prhs[0],pLocalizationFunctionName,strsize)!=0){
+        mexErrMsgTxt("Not enough space to allocate buffer for pLocalizationFunctionName.");
+    }
 
     /* Algoritmo TRIAD Improved */
     if (strcmp(pLocalizationFunctionName,"TRIAD")==0){
@@ -273,7 +290,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         pM = GetM(prhs[3]);
         pG = GetG(prhs[4]);
         pq_previous = Getq(prhs[5]);
-        
+
         // fun��o principal:
 #ifdef SYSTEM_WINDOWS
         WINPERF_ResetCounter(&WinperfCounter);
@@ -287,22 +304,57 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 #endif 
 #ifdef SYSTEM_LINUX
         gettimeofday(&time, NULL);
-	Telapsed = (time.tv_sec - timereset.tv_sec) + 1e-6 * (time.tv_usec - timereset.tv_usec);
+        Telapsed = (time.tv_sec - timereset.tv_sec) + 1e-6 * (time.tv_usec - timereset.tv_usec);
 #endif
-        
+
         // sa�da:
         plhs[0] = PGMATRIX_COPY_TO_MXARRAY(&q);
         if(nlhs==2){
             plhs[1] = mxCreateDoubleScalar(Telapsed);
         }
-        
+
         // liberar memoria:
         PGMATRIX_FREE(pG);
         PGMATRIX_FREE(pM);
         PGMATRIX_FREE(pq_previous);
     }
 
-   /* % Algoritmo FKE aplicado � arquitetura correlata: etapa de predi��o */
+    /* % Algoritmo FKE aplicado � arquitetura correlata: etapa de predi��o */
+    if (strcmp(pLocalizationFunctionName,"FILTER_EKF_DECOUPLED_PREDICTION")==0)
+    {
+        // ekf_structure, imumeasure, G, T
+        GetFilterStruct(LOCALIZATION_ALGORITHMCODE_EKF_DECOUPLED, &FilterStruct, prhs[1]);
+        GetIMUMeasure(&IMUMeasure, prhs[2]);
+        pG = GetG(prhs[3]);
+        T = GetT(prhs[4]);
+
+        // fun��o principal:
+#ifdef SYSTEM_WINDOWS
+        WINPERF_ResetCounter(&WinperfCounter);
+#endif
+#ifdef SYSTEM_LINUX
+        gettimeofday(&timereset, NULL);
+#endif
+        localization_filter_prediction(&FilterStruct, &IMUMeasure, pG, T);
+#ifdef SYSTEM_WINDOWS
+        Telapsed = WINPERF_GetElapsedTime(&WinperfCounter);
+#endif
+#ifdef SYSTEM_LINUX
+        gettimeofday(&time, NULL);
+        Telapsed = (time.tv_sec - timereset.tv_sec) + 1e-6 * (time.tv_usec - timereset.tv_usec);
+#endif
+
+        // sa�da:
+        plhs[0] = SetFilterStruct(&FilterStruct);
+        if(nlhs==2){
+            plhs[1] = mxCreateDoubleScalar(Telapsed);
+        }
+
+        // liberar memoria:
+        PGMATRIX_FREE(pG);
+        localization_close(&FilterStruct);
+    }
+
     if (strcmp(pLocalizationFunctionName,"FILTER_EKF2_PREDICTION")==0){
         // ekf_structure, imumeasure, G, T
         GetFilterStruct(LOCALIZATION_ALGORITHMCODE_EKF2, &FilterStruct, prhs[1]);
@@ -323,21 +375,21 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 #endif 
 #ifdef SYSTEM_LINUX
         gettimeofday(&time, NULL);
-	Telapsed = (time.tv_sec - timereset.tv_sec) + 1e-6 * (time.tv_usec - timereset.tv_usec);
+        Telapsed = (time.tv_sec - timereset.tv_sec) + 1e-6 * (time.tv_usec - timereset.tv_usec);
 #endif
-        
+
         // sa�da:
         plhs[0] = SetFilterStruct(&FilterStruct);
         if(nlhs==2){
             plhs[1] = mxCreateDoubleScalar(Telapsed);
         }
-        
+
         // liberar memoria:
         PGMATRIX_FREE(pG);
         localization_close(&FilterStruct);
     }
 
-   /* % Algoritmo FKEC aplicado � arquitetura correlata: etapa de predi��o */
+    /* % Algoritmo FKEC aplicado � arquitetura correlata: etapa de predi��o */
     if (strcmp(pLocalizationFunctionName,"FILTER_CEKF_PREDICTION")==0){
         // ekf_structure, imumeasure, G, T
         GetFilterStruct(LOCALIZATION_ALGORITHMCODE_CEKF, &FilterStruct, prhs[1]);
@@ -358,22 +410,22 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 #endif 
 #ifdef SYSTEM_LINUX
         gettimeofday(&time, NULL);
-	Telapsed = (time.tv_sec - timereset.tv_sec) + 1e-6 * (time.tv_usec - timereset.tv_usec);
+        Telapsed = (time.tv_sec - timereset.tv_sec) + 1e-6 * (time.tv_usec - timereset.tv_usec);
 #endif
-        
+
         // sa�da:
         plhs[0] = SetFilterStruct(&FilterStruct);
         if(nlhs==2){
             plhs[1] = mxCreateDoubleScalar(Telapsed);
         }
-        
+
         // liberar memoria:
         PGMATRIX_FREE(pG);
         localization_close(&FilterStruct);
     }
-    
-    
-   /* % Algoritmo FKE aplicado � arquitetura correlata: etapa de corre��o */
+
+
+    /* % Algoritmo FKE aplicado � arquitetura correlata: etapa de corre��o */
     if (strcmp(pLocalizationFunctionName,"FILTER_EKF2_CORRECTION")==0){
         // ekf_structure, imumeasure, G, T
         GetFilterStruct(LOCALIZATION_ALGORITHMCODE_EKF2, &FilterStruct, prhs[1]);
@@ -398,21 +450,62 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 #endif 
 #ifdef SYSTEM_LINUX
         gettimeofday(&time, NULL);
-	Telapsed = (time.tv_sec - timereset.tv_sec) + 1e-6 * (time.tv_usec - timereset.tv_usec);
+        Telapsed = (time.tv_sec - timereset.tv_sec) + 1e-6 * (time.tv_usec - timereset.tv_usec);
 #endif
-        
+
         // sa�da:
         plhs[0] = SetFilterStruct(&FilterStruct);
         if(nlhs==2){
             plhs[1] = mxCreateDoubleScalar(Telapsed);
         }
-        
+
         // liberar memoria:
         PGMATRIX_FREE(pG);
         localization_close(&FilterStruct);
     }
 
-   /* % Algoritmo FKEC aplicado � arquitetura correlata: etapa de corre��o */
+    /* % Algoritmo FKE aplicado � arquitetura correlata: etapa de corre��o */
+    if (strcmp(pLocalizationFunctionName,"FILTER_EKF_DECOUPLED_CORRECTION")==0)
+    {
+        // ekf_structure, imumeasure, G, T
+        GetFilterStruct(LOCALIZATION_ALGORITHMCODE_EKF_DECOUPLED, &FilterStruct, prhs[1]);
+        GetGPSMeasure(&GPSMeasure, prhs[2]);
+        GetIMUMeasure(&IMUMeasure, prhs[3]);
+        GetMagnetometerMeasure(&MagnetometerMeasure, prhs[4]);
+        GetSonarMeasure(&SonarMeasure, prhs[5]);
+        pM = GetM(prhs[6]);
+        pG = GetG(prhs[7]);
+        T = GetT(prhs[8]);
+
+        // fun��o principal:
+#ifdef SYSTEM_WINDOWS
+        WINPERF_ResetCounter(&WinperfCounter);
+#endif 
+#ifdef SYSTEM_LINUX
+        gettimeofday(&timereset, NULL);
+#endif
+        localization_filter_correction(&FilterStruct, &GPSMeasure, &IMUMeasure, &MagnetometerMeasure, &SonarMeasure, pM, pG, T);
+#ifdef SYSTEM_WINDOWS
+        Telapsed = WINPERF_GetElapsedTime(&WinperfCounter);
+#endif 
+#ifdef SYSTEM_LINUX
+        gettimeofday(&time, NULL);
+        Telapsed = (time.tv_sec - timereset.tv_sec) + 1e-6 * (time.tv_usec - timereset.tv_usec);
+#endif
+
+        // sa�da:
+        plhs[0] = SetFilterStruct(&FilterStruct);
+        if(nlhs==2){
+            plhs[1] = mxCreateDoubleScalar(Telapsed);
+        }
+
+        // liberar memoria:
+        PGMATRIX_FREE(pG);
+        localization_close(&FilterStruct);
+    }
+
+
+    /* % Algoritmo FKEC aplicado � arquitetura correlata: etapa de corre��o */
     if (strcmp(pLocalizationFunctionName,"FILTER_CEKF_CORRECTION")==0){
         // ekf_structure, imumeasure, G, T
         GetFilterStruct(LOCALIZATION_ALGORITHMCODE_CEKF, &FilterStruct, prhs[1]);
@@ -437,15 +530,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 #endif 
 #ifdef SYSTEM_LINUX
         gettimeofday(&time, NULL);
-	Telapsed = (time.tv_sec - timereset.tv_sec) + 1e-6 * (time.tv_usec - timereset.tv_usec);
+        Telapsed = (time.tv_sec - timereset.tv_sec) + 1e-6 * (time.tv_usec - timereset.tv_usec);
 #endif
-        
+
         // sa�da:
         plhs[0] = SetFilterStruct(&FilterStruct);
         if(nlhs==2){
             plhs[1] = mxCreateDoubleScalar(Telapsed);
         }
-        
+
         // liberar memoria:
         PGMATRIX_FREE(pG);
         localization_close(&FilterStruct);

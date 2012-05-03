@@ -11,7 +11,7 @@ int main(void)
 {
 	LOCALIZATIONFILTERSTRUCT FilterStruct;
 	//First step: initialize the filter structure
-	localization_init(LOCALIZATION_ALGORITHMCODE_CEKF, 1, &FilterStruct);
+	localization_init(LOCALIZATION_ALGORITHMCODE_EKF_DECOUPLED, 1, &FilterStruct);
 
 	//Second step: initialize the covariance matrices and initial state estimate
 	PGMATRIX_DATA(FilterStruct.pX, X_q0, 1) = 1.0;
@@ -89,7 +89,6 @@ int main(void)
 
 	PGMATRIX_PRINT_MATLABFORM(FilterStruct.pX);
 
-	localization_close(&FilterStruct);
 	magnetometer_close(&MagnetometerMeasure);
 	gps_close(&GPSMeasure);
 	imu_close(&IMUMeasure);

@@ -56,9 +56,101 @@ real_data.my = my;
 real_data.mz = mz;
 real_data.local_magnetic = local_magnetic;
 real_data.magnetometer_validmeasure = magnetometer_validmeasure;
+real_data.gps_x = gps_x;
+real_data.gps_y = gps_y;
+real_data.gps_z = gps_z;
 real_data.gps_validpmeasure = gps_validpmeasure;
+real_data.gps_vx = gps_vx;
+real_data.gps_vy = gps_vy;
+real_data.gps_vz = gps_vz;
 real_data.gps_validvmeasure = gps_validvmeasure;
 real_data.sonar_range = sonar_range;
 real_data.sonar_validmeasure = sonar_validmeasure;
-real_data.X0 = X0;
-real_data.P0 = P0;
+
+if(exist('real_data.X0', 'var'))
+    real_data.X0 = X0;
+else
+    M = local_magnetic';
+    G = local_gravity';
+
+    % Perform a TRIAD estimate with the first data point
+    mag = [mx(1, 1); my(1, 1); mz(1, 1)];
+
+    %armazena a acelera��o (for�a espec�fica). A acerela��o � negada, pois leva-se em conta que os
+    %acelerometros medem a for�a espec�fica sob sua massa e n�o a acelera��o
+    a = zeros(3,1);
+    a(1) = -ax(1, 1);
+    a(2) = -ay(1, 1);
+    a(3) = -az(1, 1);
+
+    %normaliza��o dos vetores de acelera��o e de campo magn�tico
+    mag = (mag/sqrt(mag(1)^2 + mag(2)^2 + mag(3)^2));
+    a = a/sqrt(a(1)^2 + a(2)^2 + a(3)^2);
+    G = G/sqrt(G(1)^2 + G(2)^2 + G(3)^2);
+    M = M/sqrt(M(1)^2 + M(2)^2 + M(3)^2);
+
+
+    % Inicializa as variaveis do corpo. sendo "a" as medidas do acelerometro e
+    % "mag" as medidas do magnetometro. Lembrando que a fun��o cross(,)
+    % representa produto vetorial entre dois vetores.
+    aux = a + mag;
+    I_b = aux/sqrt(aux(1)^2 + aux(2)^2 + aux(3)^2);
+
+    aux = cross(I_b,(a - mag));
+    J_b = aux/sqrt(aux(1)^2 + aux(2)^2 + aux(3)^2);
+
+    K_b = cross(I_b,J_b);
+
+    %Inicializa as variaveis do sistema inercial
+    aux = G + M;
+    I_i = aux/sqrt(aux(1)^2 + aux(2)^2 + aux(3)^2);
+
+    aux = cross(I_i,(G - M));
+    J_i = aux/sqrt(aux(1)^2 + aux(2)^2 + aux(3)^2);
+
+    K_i = cross(I_i,J_i);
+
+    % Calculo da matriz de rota��o pelo m�todo TRIAD melhorado
+    R_i_b = ([I_b, J_b, K_b]*([I_i, J_i, K_i]'));
+
+    %Cria��o do quat�rnio de rota��o. (Deve se observar que a matriz de
+    %rota��o � do sistema de refer�ncia para o sistema do corpo a contr�rio do
+    %que o Padilha escreveu. Dados para a confer�ncia est�o em
+    %http://www.uel.br/proppg/semina/pdf/semina_28_1_22_19.pdf).
+    R_b_i = R_i_b';
+    q = dcm2quaternions(R_b_i);
+    
+    real_data.X0 = [q(1); q(2); q(3); q(4); gps_x(1); gps_y(1); gps_z(1); gps_vx(1); gps_vy(1); gps_vz(1);];
+end
+
+if(exist('real_data.P0', 'var'))
+    real_data.P0 = P0;
+else
+    real_data.P0 = 1000.0*eye(10);
+end
+
+% Do we have ground truth?
+if(exist('real_data_roll_radians', 'var'))
+    real_pose = pose_create;
+    real_pose.x = real_data_local_coordinate_system_north;
+    real_pose.y = real_data_local_coordinate_system_east;
+    real_pose.z = -1.0*real_data_local_coordinate_system_up;
+    real_pose.dx_dt = real_data_northing_velocity_meters_second;
+    real_pose.dy_dt = real_data_easting_velocity_meters_second;
+    real_pose.dz_dt = real_data_down_velocity_meters_second;
+    real_pose.pitch = real_data_pitch_radians;
+    real_pose.yaw = real_data_yaw_radians;
+    real_pose.roll = real_data_roll_radians;
+    real_pose.q0 = zeros(length(real_data_roll_radians), 1);
+    real_pose.q1 = zeros(length(real_data_roll_radians), 1);
+    real_pose.q2 = zeros(length(real_data_roll_radians), 1);
+    real_pose.q3 = zeros(length(real_data_roll_radians), 1);
+    for i = 1:length(real_data_roll_radians)
+        q = euler2quaternions([real_data_roll_radians(i), real_data_pitch_radians(i), real_data_yaw_radians(i)]');
+        real_pose.q0(i) = q(1);
+        real_pose.q1(i) = q(2);
+        real_pose.q2(i) = q(3);
+        real_pose.q3(i) = q(4);
+    end
+    real_data.real_pose = real_pose;
+end

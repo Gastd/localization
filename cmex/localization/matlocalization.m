@@ -34,6 +34,26 @@ if strcmp(proceedurestrg,'FILTER_CEKF_PREDICTION')
     result = cekf_structure;
 end
 
+if strcmp(proceedurestrg,'FILTER_EKF3_PREDICTION')
+    ekf3_structure = varargincell{1};
+    imumeasure = varargincell{2};
+    G = varargincell{3};
+    T = varargincell{4};
+
+    [ekf3_structure] = localization_filter_prediction('ekf3', ekf3_structure, imumeasure, G, T);
+    result = ekf3_structure;
+end
+
+if strcmp(proceedurestrg,'FILTER_EKF_DECOUPLED_PREDICTION')
+    ekf_decoupled_structure = varargincell{1};
+    imumeasure = varargincell{2};
+    G = varargincell{3};
+    T = varargincell{4};
+
+    [ekf_decoupled_structure] = localization_filter_prediction('ekf_decoupled', ekf_decoupled_structure, imumeasure, G, T);
+    result = ekf_decoupled_structure;
+end
+
 if strcmp(proceedurestrg,'FILTER_UKF2_PREDICTION')
     ukf2_structure = varargincell{1};
     imumeasure = varargincell{2};
@@ -59,6 +79,20 @@ if strcmp(proceedurestrg,'FILTER_EKF2_CORRECTION')
     result = ekf_structure;
 end
 
+if strcmp(proceedurestrg,'FILTER_EKF_DECOUPLED_CORRECTION')
+    ekf_decoupled_structure = varargincell{1};
+    gpsmeasure = varargincell{2};
+    imumeasure = varargincell{3};
+    magnetometermeasure = varargincell{4};
+    sonarmeasure = varargincell{5};
+    M = varargincell{6};
+    G = varargincell{7};
+    T = varargincell{8};
+
+    [ekf_decoupled_structure] = localization_filter_correction('ekf_decoupled', ekf_decoupled_structure, gpsmeasure, imumeasure, magnetometermeasure, sonarmeasure, M, G, T);
+    result = ekf_decoupled_structure;
+end
+
 % Algoritmo FKEC aplicado � arquitetura correlata: etapa de corre��o
 if strcmp(proceedurestrg,'FILTER_CEKF_CORRECTION')
     cekf_structure = varargincell{1};
@@ -72,6 +106,20 @@ if strcmp(proceedurestrg,'FILTER_CEKF_CORRECTION')
 
     [cekf_structure] = localization_filter_correction('cekf', cekf_structure, gpsmeasure, imumeasure, magnetometermeasure, sonarmeasure, M, G, T);
     result = cekf_structure;
+end
+
+if strcmp(proceedurestrg,'FILTER_EKF3_CORRECTION')
+    ekf3_structure = varargincell{1};
+    gpsmeasure = varargincell{2};
+    imumeasure = varargincell{3};
+    magnetometermeasure = varargincell{4};
+    sonarmeasure = varargincell{5};
+    M = varargincell{6};
+    G = varargincell{7};
+    T = varargincell{8};
+
+    [ekf3_structure] = localization_filter_correction('ekf3', ekf3_structure, gpsmeasure, imumeasure, magnetometermeasure, sonarmeasure, M, G, T);
+    result = ekf3_structure;
 end
 
 if strcmp(proceedurestrg,'FILTER_UKF2_CORRECTION')
