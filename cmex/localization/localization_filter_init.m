@@ -73,4 +73,4 @@ kf_structure.A_imu_P_imu_ekf3 = zeros(Nstates,6);
 kf_structure.innovation_previous_ekf3 = zeros(4,1);
 
 kf_structure.ekf_decoupled_magnetometer_R = 1e-1*eye(3);
-kf_structure.ekf_decoupled_accelerometer_R = 2*eye(3);
+kf_structure.ekf_decoupled_accelerometer_R = 1e-1*eye(3);

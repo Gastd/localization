@@ -8,12 +8,12 @@ imumeasure.wx = 0;
 imumeasure.wy = 0;
 imumeasure.wz = 0;
 
-variance_wx = 0.0001;
-variance_wy = 0.0001;
-variance_wz = 0.0001;
-variance_ax = 0.01;
-variance_ay = 0.01;
-variance_az = 0.01;
+variance_wx = 0.005;
+variance_wy = 0.005;
+variance_wz = 0.005;
+variance_ax = 0.1;
+variance_ay = 0.1;
+variance_az = 0.1;
 
 imumeasure.axvariance = flagnoise*variance_ax;
 imumeasure.ayvariance = flagnoise*variance_ay;

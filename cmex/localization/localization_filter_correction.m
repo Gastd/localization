@@ -470,6 +470,7 @@ X = kf_structure.X;
 P = kf_structure.P;
 
 % Calculating the inovation term directly:
+G = -G;
 v = [imumeasure.ax; imumeasure.ay; imumeasure.az;]/sqrt(imumeasure.ax.^2+imumeasure.ay.^2+imumeasure.az.^2) - transpose(quaternions2dcm(X(1:4)))*(-1.0*G/norm(G));
 
 % We also need dh_dX. This is calculated by hand:
@@ -516,7 +517,12 @@ dh_dX(3, 4) = 2*G(1)/norm(G)*q1 + 2*G(2)/norm(G)*q2 + 2*G(3)/norm(G)*q3;
 % For consistency, call dh_dX = H
 H = dh_dX;
 % Calculate the innovation covariance S
-S = H*P*transpose(H)+ kf_structure.ekf_decoupled_accelerometer_R;
+accelerometer_R = kf_structure.ekf_decoupled_accelerometer_R*exp(20*abs(norm([imumeasure.ax; imumeasure.ay; imumeasure.az;]) - norm(G)))*eye(3);
+if(accelerometer_R(1,1) > 1e3)
+    accelerometer_R = 1e3*eye(3);
+end
+
+S = H*P*transpose(H) + accelerometer_R;
 % Kalman gain
 K = P*transpose(H)*inv(S);
 kf_structure.X = X + K*v;

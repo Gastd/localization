@@ -1,13 +1,13 @@
-%Função que estima a posição, velocidade e atitude pelo método de Runge
+%Funï¿½ï¿½o que estima a posiï¿½ï¿½o, velocidade e atitude pelo mï¿½todo de Runge
 %Kuta
-function  [pose_estimator_state] = estimator_rungekutta(pose_estimator_state, imu_measurements, G, T)
+function  [pose_estimator_state] = localization_rungekutta(pose_estimator_state, imu_measurements, G, T)
 
-%preserva a posição e suas 1ª  derivadas
+%preserva a posiï¿½ï¿½o e suas 1ï¿½  derivadas
 V_pre = [pose_estimator_state.dx_dt; pose_estimator_state.dy_dt; pose_estimator_state.dz_dt];
 P_pre = [pose_estimator_state.x; pose_estimator_state.y; pose_estimator_state.z];
 
 %%% Calculo do quaternion
-% ac garantirá que o modulo do quaternio será unitario
+% ac garantirï¿½ que o modulo do quaternio serï¿½ unitario
 sigma_x = imu_measurements.wx*T;
 sigma_y = imu_measurements.wy*T;
 sigma_z = imu_measurements.wz*T;
@@ -17,13 +17,13 @@ sigma = sqrt(sigma_x^2 + sigma_y^2 + sigma_z^2);
 ac = 1 - (.5*sigma)^2/2 + (.5*sigma)^4/24;
 as = .5*(1 - (.5*sigma)^2/2 + (.5*sigma)^4/24);
 
-% Formatação do quatérnio
+% Formataï¿½ï¿½o do quatï¿½rnio
 rk = [ac;
     as*sigma_x;
     as*sigma_y;
     as*sigma_z];
 
-%% calcula a nova matriz de rotação
+%% calcula a nova matriz de rotaï¿½ï¿½o
 q_pre = euler2quaternions([pose_estimator_state.roll,pose_estimator_state.pitch,pose_estimator_state.yaw]');
 q = multiplica_quaternion(q_pre,rk);
 q = quaternions_correctsign(q, q_pre);

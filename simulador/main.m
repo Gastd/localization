@@ -5,7 +5,7 @@
 %% Initialization
 
 clear all;
-% close all;
+close all;
 clc;
 
 if ispc
@@ -24,13 +24,13 @@ end
 flagestimatorTRIAD = 0; %TRIAD (attitude) only estimator
 flagestimatorRungeKutta = 0; %4th order Runge-Kutta position estimation
 flagestimatorEKF2 = 0; % Extended Kalman Filter (attitude+position)
-flagestimatorCEKF = 0; % Correlated measurement Extended Kalman Filter (best) (attitude+position)
+flagestimatorCEKF = 1; % Correlated measurement Extended Kalman Filter (best) (attitude+position)
 flagestimatorEKF3 = 0; % EKF with TRIAD uncertinity modulation, and other goodies (testing)
-flagestimatorEKF_Decoupled = 1; % EKF decoupled magnetometer/accelerometer measurements (testing)
+flagestimatorEKF_Decoupled = 0; % EKF decoupled magnetometer/accelerometer measurements (testing)
 flagestimatorUKF2 = 0; % Sigma-point UKF (attitude+position)
 
 % Should the system estimate the accelerometer bias?
-flagkf_estimateaccelerometerbias = 1;
+flagkf_estimateaccelerometerbias = 0;
 
 % Should the system estimate the gyrometer bias?
 flagkf_estimategyrometerbias = 0; % Not fully implemented yet!
@@ -48,8 +48,8 @@ plotAttitude = 1;
 plotPosition = 1;
 plotSpeed = 1;
 plotBiases = 1;
-plotSensorData = 01;
-plotPosition3D = 0;
+plotSensorData = 1;
+plotPosition3D = 1;
 
 % Simulation or real data?
 flaguserealdata = 1; % 0 -> simulation, 1 -> real data
@@ -58,7 +58,7 @@ flaguserealdata = 1; % 0 -> simulation, 1 -> real data
 flagnoise = 1;
 
 % Ground truth available, if real data??
-flaggroundtruth = 1;
+flaggroundtruth = 0;
 
 % If real data, specify the data file
 if ispc
@@ -72,8 +72,8 @@ end
 flaggeneratedatabefore = 1;
 
 % What trajectory should be used in case of simulation?
-%trajectory_name = 'trajectory_figure8';
-trajectory_name = 'trajectory_helix';
+trajectory_name = 'trajectory_figure8';
+%trajectory_name = 'trajectory_helix';
 %trajectory_name = 'trajectory_hovering';
 
 %% System initialization
@@ -148,9 +148,9 @@ if plotRealtimeData
 
     figure; plot3(vehiclestate.y,vehiclestate.x,-vehiclestate.z); hold on; grid on;
     hvehicle = vehicle_draw(vehiclestate);
-    dx = 3000;
-    dy = 3000;
-    dz = 1000;
+    dx = 700;
+    dy = 700;
+    dz = 50;
     axis([vehiclestate.x-dx vehiclestate.x+dx vehiclestate.y-dy vehiclestate.y+dy vehiclestate.z-dz vehiclestate.z+dz]);
     xlabel('x (east) [m]'); ylabel('y (north) [m]'); zlabel('z (up) [m]');
     set(gca,'DataAspectRatio',[1 1 1]);
@@ -522,9 +522,9 @@ for n=1:length(t),
     
     if plotRealtimeData
         % Plot in ENU coordinates
-        if rem(n,ceil(0.2/Ts))==2
+        if rem(n,10)==0
             hvehicle = vehicle_draw(vehiclestate,hvehicle);
-            if(n<100)
+            if(n <= 100)
                 plot3(position_estimates.y(1:n), position_estimates.x(1:n), -position_estimates.z(1:n));
             else
                 plot3(position_estimates.y((n-100):n), position_estimates.x((n-100):n), -position_estimates.z((n-100):n));
@@ -969,6 +969,9 @@ if plotPosition3D
     end
     if flagestimatorCEKF
         plot3([pose_estimates_cekf.y],[pose_estimates_cekf.x],-[pose_estimates_cekf.z],'r');
+    end
+    if flagestimatorEKF_Decoupled
+        plot3([pose_estimates_ekf_decoupled.y],[pose_estimates_ekf_decoupled.x],-[pose_estimates_ekf_decoupled.z],'m');
     end
     ylabel('y (north) [m]'); xlabel('x (east) [m]'); zlabel('z (up) [m]');
     set(gca,'DataAspectRatio',[1 1 1]);

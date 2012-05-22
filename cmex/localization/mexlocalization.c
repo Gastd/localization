@@ -335,7 +335,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 #ifdef SYSTEM_LINUX
         gettimeofday(&timereset, NULL);
 #endif
-        localization_filter_prediction(&FilterStruct, &IMUMeasure, pG, T);
+        //localization_filter_prediction(&FilterStruct, &IMUMeasure, pG, T);
 #ifdef SYSTEM_WINDOWS
         Telapsed = WINPERF_GetElapsedTime(&WinperfCounter);
 #endif
