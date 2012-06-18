@@ -34,8 +34,8 @@ kf_structure.Wsigma = zeros(1,2*Nstates+1);
 % linhas � igual ao n�mero de linhas do processo.
 kf_structure.Q_ekf = zeros(Nstates);
 kf_structure.Q_ekf(1:4,1:4) = eye(4)*(0.01^2);
-kf_structure.Q_ekf(5:7,5:7) = eye(3)*(0.1^2);
-kf_structure.Q_ekf(8:10,8:10) = eye(3)*(0.01^2);
+kf_structure.Q_ekf(5:7,5:7) = eye(3)*(1.0^2);
+kf_structure.Q_ekf(8:10,8:10) = eye(3)*(0.5^2);
 if (flagestimateaccelerometerbias)
     kf_structure.Q_ekf(11:13,11:13) = eye(3)*(0.001^2);
     if(flagestimategyrometerbias)
@@ -48,7 +48,7 @@ else
 end
 
 kf_structure.Q_ekf(1:4,1:4)   = kf_structure.Q_ekf(1:4,1:4)  * 1e0;
-kf_structure.Q_ekf(5:10,5:10) = kf_structure.Q_ekf(5:10,5:10) * 1e-2;
+kf_structure.Q_ekf(5:10,5:10) = kf_structure.Q_ekf(5:10,5:10) * 1e0;
 
 kf_structure.Q_ukf = kf_structure.Q_ekf;
 kf_structure.Q_cekf = kf_structure.Q_ekf;
