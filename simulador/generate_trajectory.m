@@ -2,7 +2,7 @@ function [simulated_trajectory_data_out, real_pose] = generate_trajectory(trajec
 
 %% Simulation configuration parameters
 sampling_frequency = 100; %simulation sampling frequency (Hz)
-T_final = 1500.0; % total simulation time (seconds)
+T_final = 150.0; % total simulation time (seconds)
 
 % Initial covariance multiplier
 flaginitcovariance = 100;

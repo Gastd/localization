@@ -26,11 +26,11 @@ flagestimatorRungeKutta = 0; %4th order Runge-Kutta position estimation
 flagestimatorEKF2 = 0; % Extended Kalman Filter (attitude+position)
 flagestimatorCEKF = 1; % Correlated measurement Extended Kalman Filter (best) (attitude+position)
 flagestimatorEKF3 = 0; % EKF with TRIAD uncertinity modulation, and other goodies (testing)
-flagestimatorEKF_Decoupled = 0; % EKF decoupled magnetometer/accelerometer measurements (testing)
+flagestimatorEKF_Decoupled = 1; % EKF decoupled magnetometer/accelerometer measurements (testing)
 flagestimatorUKF2 = 0; % Sigma-point UKF (attitude+position)
 
 % Should the system estimate the accelerometer bias?
-flagkf_estimateaccelerometerbias = 0;
+flagkf_estimateaccelerometerbias = 1;
 
 % Should the system estimate the gyrometer bias?
 flagkf_estimategyrometerbias = 0; % Not fully implemented yet!
@@ -69,11 +69,11 @@ end
 
 % Should we generate data before (with the original data) or generate on
 % the fly?
-flaggeneratedatabefore = 1;
+flaggeneratedatabefore = 0;
 
 % What trajectory should be used in case of simulation?
-trajectory_name = 'trajectory_figure8';
-%trajectory_name = 'trajectory_helix';
+%trajectory_name = 'trajectory_figure8';
+trajectory_name = 'trajectory_helix';
 %trajectory_name = 'trajectory_hovering';
 
 %% System initialization
@@ -331,6 +331,12 @@ for n=1:length(t),
         measurements.imu(n).ax = data.ax(n);
         measurements.imu(n).ay = data.ay(n);
         measurements.imu(n).az = data.az(n);
+        
+        if(sqrt(measurements.imu(n).ax^2 + measurements.imu(n).ay^2 + measurements.imu(n).az^2) > 20.0)
+            measurements.imu(n).ax = measurements.imu(n-1).ax
+            measurements.imu(n).ay = measurements.imu(n-1).ay
+            measurements.imu(n).az = measurements.imu(n-1).az
+        end
         
         %%% Magnetometer measurements:
         measurements.magnetometer(n).mx = data.mx(n);

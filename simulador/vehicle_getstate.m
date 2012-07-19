@@ -7,9 +7,9 @@ if strcmp(trajectory_name,'trajectory_helix')
    %%% Helix trajectory
    flagtrajectorydefined = 1;
    
-   vz = 0.5; % vertical speed in m/s (up is positive)
-   wxy = 1*pi/180; % rotational speed in rad/s
-   r = 400; % circle radius
+   vz = 3.0; % vertical speed in m/s (up is positive)
+   wxy = 5*pi/180; % rotational speed in rad/s
+   r = 50; % circle radius
    
    vehiclestate.x = r*cos(wxy*t); % North
    vehiclestate.y = r*sin(wxy*t); % East
@@ -80,9 +80,9 @@ end
 
 if strcmp(trajectory_name,'trajectory_figure8')
     flagtrajectorydefined = 1;
-    TrackLength = 2000.0;
-    Speed = 25.0;
-    CrossOverHeight = 100.0;
+    TrackLength = 200.0;
+    Speed = 5.0;
+    CrossOverHeight = 20.0;
     %
     % Grewal & Andrews, Kalman Filtering: Theory and Practice Using MATLAB,
     % John Wiley & Sons, 2008
