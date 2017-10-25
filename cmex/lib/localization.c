@@ -134,6 +134,8 @@ int localization_close(PLOCALIZATIONFILTERSTRUCT pFilterStruct)
 
     PGMATRIX_FREE(pFilterStruct->pQ);
 
+    PGMATRIX_FREE(pFilterStruct->pR_accelerometer);
+    PGMATRIX_FREE(pFilterStruct->pR_magnetometer);
     PGMATRIX_FREE(pFilterStruct->pR_pseudomeasurementnorm);
 
     PGMATRIX_FREE(pFilterStruct->pR_convertedmeasurementtriad);
