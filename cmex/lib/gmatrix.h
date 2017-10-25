@@ -9,7 +9,7 @@
 #ifndef GMATRIX_H
 #define GMATRIX_H
 
-#define GMATRIX_CMEX /* Leave this line if CMEX is used.
+// #define GMATRIX_CMEX /* Leave this line if CMEX is used.
 
 /**********************************************************************************************
 ***** GMatrix: Defines will be used in the project.
