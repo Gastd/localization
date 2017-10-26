@@ -1,10 +1,3 @@
-#include "gmatrix.h"
-#include "gmatrix_linalg.h"
-#include "imu.h"
-#include "gps.h"
-#include "sonar.h"
-#include "magnetometer.h"
-#include "rotation.h"
 #include "localization.h"
 #include "kalman.h"
 #include "unscentedtransform.h"
@@ -32,7 +25,7 @@ int localization_init(int AlgorithmCode, int FlagEstimateAccelerometerBias, PLOC
     pFilterStruct->FlagEstimateAccelerometerBias = FlagEstimateAccelerometerBias;
 
     pFilterStruct->Nstates = 4 + 3 + 3; // quaternions + 3D position + 3D speed
-    if (FlagEstimateAccelerometerBias)
+    if(FlagEstimateAccelerometerBias)
     {
         pFilterStruct->Nstates += 3; // + accelerometer bias
     }
@@ -41,7 +34,7 @@ int localization_init(int AlgorithmCode, int FlagEstimateAccelerometerBias, PLOC
     pFilterStruct->pP = PGMATRIX_ALLOC(pFilterStruct->Nstates, pFilterStruct->Nstates); // %should be set by user.
     pFilterStruct->pPreset = PGMATRIX_ALLOC(pFilterStruct->Nstates, pFilterStruct->Nstates); // %should be set by user.
 
-    if(pFilterStruct->AlgorithmCode==LOCALIZATION_ALGORITHMCODE_UKF2)
+    if(pFilterStruct->AlgorithmCode == LOCALIZATION_ALGORITHMCODE_UKF2)
     {
         pFilterStruct->pXsigma_ukf = PGMATRIX_ALLOC(pFilterStruct->Nstates, 2*pFilterStruct->Nstates+1);
         pFilterStruct->pWsigma_ukf = PGMATRIX_ALLOC(1, 2*pFilterStruct->Nstates+1);
@@ -256,22 +249,22 @@ int localization_filter_correction_cekf(PLOCALIZATIONFILTERSTRUCT pFilterStruct,
         // end
         if (pFilterStruct->FlagEstimateAccelerometerBias)
         {
-            GMATRIX_SETSIZE(H,4,13);
+            GMATRIX_SETSIZE(H, 4, 13);
             GMATRIX_ZEROES(H);
         }
         else
         {
-            GMATRIX_SETSIZE(H,4,10);
+            GMATRIX_SETSIZE(H, 4, 10);
             GMATRIX_ZEROES(H);
         }
-        GMATRIX_DATA(H,1,1) = 1.0;
-        GMATRIX_DATA(H,2,2) = 1.0;
-        GMATRIX_DATA(H,3,3) = 1.0;
-        GMATRIX_DATA(H,4,4) = 1.0;
+        GMATRIX_DATA(H, 1, 1) = 1.0;
+        GMATRIX_DATA(H, 2, 2) = 1.0;
+        GMATRIX_DATA(H, 3, 3) = 1.0;
+        GMATRIX_DATA(H, 4, 4) = 1.0;
 
         // [Ym,Py] = ConvertedMeasurementTRIAD('cekf',X, P, imumeasure, magnetometermeasure, M, G, kf_structure.flagestimateaccelerometerbias);
-        GMATRIX_SETSIZE(Ym,4,1);
-        GMATRIX_SETSIZE(Py,4,4);
+        GMATRIX_SETSIZE(Ym, 4, 1);
+        GMATRIX_SETSIZE(Py, 4, 4);
         localization_converted_measurement_triad(&Ym, &Py, &X_predicted, &P_predicted, pIMUMeasure, pMagnetometerMeasure, pM, pG, pFilterStruct->FlagEstimateAccelerometerBias);
 //      GMATRIX_PRINT_MATLABFORM(Ym);
 //      GMATRIX_PRINT_MATLABFORM(Py);

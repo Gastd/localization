@@ -4,6 +4,13 @@
 #include <math.h>
 #include <stdio.h>
 
+#include "gmatrix.h"
+#include "gmatrix_linalg.h"
+#include "imu.h"
+#include "gps.h"
+#include "sonar.h"
+#include "magnetometer.h"
+#include "rotation.h"
 
 typedef struct{
     int AlgorithmCode;
