@@ -1,6 +1,10 @@
 #ifndef LOCALIZATION_H
 #define LOCALIZATION_H
 
+#include <math.h>
+#include <stdio.h>
+
+
 typedef struct{
     int AlgorithmCode;
     int FlagEstimateAccelerometerBias;

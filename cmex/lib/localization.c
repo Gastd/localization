@@ -1,6 +1,3 @@
-#include <math.h>
-#include <stdio.h>
-
 #include "gmatrix.h"
 #include "gmatrix_linalg.h"
 #include "imu.h"
