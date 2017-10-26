@@ -3,164 +3,164 @@
 #include "unscentedtransform.h"
 #include "filter_parameters.h"
 
-int localization_filter_prediction_cekf(PLOCALIZATIONFILTERSTRUCT pFilterStruct, PIMUMEASURE pIMUMeasure, PGMATRIX pG, double T);
-int localization_filter_correction_cekf(PLOCALIZATIONFILTERSTRUCT pFilterStruct, PGPSMEASURE pGPSMeasure, PIMUMEASURE pIMUMeasure, PMAGNETOMETERMEASURE pMagnetometerMeasure, PSONARMEASURE pSonarMeasure, PGMATRIX pM, PGMATRIX pG, double T);
-int localization_filter_prediction_ekf2(PLOCALIZATIONFILTERSTRUCT pFilterStruct, PIMUMEASURE pIMUMeasure, PGMATRIX pG, double T);
-int localization_filter_correction_ekf2(PLOCALIZATIONFILTERSTRUCT pFilterStruct, PGPSMEASURE pGPSMeasure, PIMUMEASURE pIMUMeasure, PMAGNETOMETERMEASURE pMagnetometerMeasure, PSONARMEASURE pSonarMeasure, PGMATRIX pM, PGMATRIX pG, double T);
-int localization_filter_prediction_ekf_decoupled(PLOCALIZATIONFILTERSTRUCT pFilterStruct, PIMUMEASURE pIMUMeasure, PGMATRIX pG, double T);
-int localization_filter_correction_ekf_decoupled(PLOCALIZATIONFILTERSTRUCT pFilterStruct, PGPSMEASURE pGPSMeasure, PIMUMEASURE pIMUMeasure, PMAGNETOMETERMEASURE pMagnetometerMeasure, PSONARMEASURE pSonarMeasure, PGMATRIX pM, PGMATRIX pG, double T);
+int localization_filter_prediction_cekf(LocalizationFilter *filter_struct, ImuMeasure *imu_measure_ptr, PGMATRIX pG, double T);
+int localization_filter_correction_cekf(LocalizationFilter *filter_struct, GpsMeasure *gps_measure_ptr, ImuMeasure *imu_measure_ptr, MagnetometerMeasure *magnetometer_measure_ptr, SonarMeasure *sonar_measure_ptr, PGMATRIX pM, PGMATRIX pG, double T);
+int localization_filter_prediction_ekf2(LocalizationFilter *filter_struct, ImuMeasure *imu_measure_ptr, PGMATRIX pG, double T);
+int localization_filter_correction_ekf2(LocalizationFilter *filter_struct, GpsMeasure *gps_measure_ptr, ImuMeasure *imu_measure_ptr, MagnetometerMeasure *magnetometer_measure_ptr, SonarMeasure *sonar_measure_ptr, PGMATRIX pM, PGMATRIX pG, double T);
+int localization_filter_prediction_ekf_decoupled(LocalizationFilter *filter_struct, ImuMeasure *imu_measure_ptr, PGMATRIX pG, double T);
+int localization_filter_correction_ekf_decoupled(LocalizationFilter *filter_struct, GpsMeasure *gps_measure_ptr, ImuMeasure *imu_measure_ptr, MagnetometerMeasure *magnetometer_measure_ptr, SonarMeasure *sonar_measure_ptr, PGMATRIX pM, PGMATRIX pG, double T);
 int localization_filter_process_model_evaluate(PGMATRIX pX, PGMATRIX pX_previous, PGMATRIX pu_imu, PGMATRIX pG, double T, int FlagEstimateAccelerometerBias);
 int localization_filter_process_model_df_dx(PGMATRIX pdf_dx, PGMATRIX pX_previous, PGMATRIX pu_imu, PGMATRIX pG, double T, int FlagEstimateAccelerometerBias);
 int localization_filter_process_model_df_du(PGMATRIX pdf_du, PGMATRIX pX_previous, PGMATRIX pu_imu, PGMATRIX pG, double T, int FlagEstimateAccelerometerBias);
-int localization_converted_measurement_triad(PGMATRIX pYm, PGMATRIX pPy, PGMATRIX pX_predicted, PGMATRIX pP_predicted, PIMUMEASURE pIMUMeasure, PMAGNETOMETERMEASURE pMagnetometerMeasure, PGMATRIX pM, PGMATRIX pG, int FlagEstimateAccelerometerBias);
-int localization_filter_observation_model_triad_evaluate(PGMATRIX pYm, PLOCALIZATIONFILTERSTRUCT pFilterStruct, PGMATRIX pX_predicted, PIMUMEASURE pIMUMeasure, PMAGNETOMETERMEASURE pMagnetometerMeasure, PGMATRIX pM, PGMATRIX pG);
-void localization_filter_quaternionscorrectsign(PLOCALIZATIONFILTERSTRUCT pFilterStruct, PGMATRIX pX_predicted);
-int localization_converted_measurement_triad_dg_du_imu(PGMATRIX pdg_du_imu, PGMATRIX pX_predicted, PGMATRIX pP_predicted, PIMUMEASURE pIMUMeasure, PMAGNETOMETERMEASURE pMagnetometerMeasure, PGMATRIX pM, PGMATRIX pG, int FlagEstimateAccelerometerBias);
+int localization_converted_measurement_triad(PGMATRIX pYm, PGMATRIX pPy, PGMATRIX pX_predicted, PGMATRIX pP_predicted, ImuMeasure *imu_measure_ptr, MagnetometerMeasure *magnetometer_measure_ptr, PGMATRIX pM, PGMATRIX pG, int FlagEstimateAccelerometerBias);
+int localization_filter_observation_model_triad_evaluate(PGMATRIX pYm, LocalizationFilter *filter_struct, PGMATRIX pX_predicted, ImuMeasure *imu_measure_ptr, MagnetometerMeasure *magnetometer_measure_ptr, PGMATRIX pM, PGMATRIX pG);
+void localization_filter_quaternionscorrectsign(LocalizationFilter *filter_struct, PGMATRIX pX_predicted);
+int localization_converted_measurement_triad_dg_du_imu(PGMATRIX pdg_du_imu, PGMATRIX pX_predicted, PGMATRIX pP_predicted, ImuMeasure *imu_measure_ptr, MagnetometerMeasure *magnetometer_measure_ptr, PGMATRIX pM, PGMATRIX pG, int FlagEstimateAccelerometerBias);
 
-int localization_init(int AlgorithmCode, int FlagEstimateAccelerometerBias, PLOCALIZATIONFILTERSTRUCT pFilterStruct)
+int localization_init(int AlgorithmCode, int FlagEstimateAccelerometerBias, LocalizationFilter *filter_struct)
 {
     // Iniciar componentes da estrutura do filtro
-    pFilterStruct->AlgorithmCode = AlgorithmCode;
+    filter_struct->AlgorithmCode = AlgorithmCode;
 
-    pFilterStruct->FlagEstimateAccelerometerBias = FlagEstimateAccelerometerBias;
+    filter_struct->FlagEstimateAccelerometerBias = FlagEstimateAccelerometerBias;
 
-    pFilterStruct->Nstates = 4 + 3 + 3; // quaternions + 3D position + 3D speed
+    filter_struct->Nstates = 4 + 3 + 3; // quaternions + 3D position + 3D speed
     if(FlagEstimateAccelerometerBias)
     {
-        pFilterStruct->Nstates += 3; // + accelerometer bias
+        filter_struct->Nstates += 3; // + accelerometer bias
     }
 
-    pFilterStruct->pX = PGMATRIX_ALLOC(pFilterStruct->Nstates, 1); // %should be set by user.
-    pFilterStruct->pP = PGMATRIX_ALLOC(pFilterStruct->Nstates, pFilterStruct->Nstates); // %should be set by user.
-    pFilterStruct->pPreset = PGMATRIX_ALLOC(pFilterStruct->Nstates, pFilterStruct->Nstates); // %should be set by user.
+    filter_struct->pX = PGMATRIX_ALLOC(filter_struct->Nstates, 1); // %should be set by user.
+    filter_struct->pP = PGMATRIX_ALLOC(filter_struct->Nstates, filter_struct->Nstates); // %should be set by user.
+    filter_struct->pPreset = PGMATRIX_ALLOC(filter_struct->Nstates, filter_struct->Nstates); // %should be set by user.
 
-    if(pFilterStruct->AlgorithmCode == LOCALIZATION_ALGORITHMCODE_UKF2)
+    if(filter_struct->AlgorithmCode == LOCALIZATION_ALGORITHMCODE_UKF2)
     {
-        pFilterStruct->pXsigma_ukf = PGMATRIX_ALLOC(pFilterStruct->Nstates, 2*pFilterStruct->Nstates+1);
-        pFilterStruct->pWsigma_ukf = PGMATRIX_ALLOC(1, 2*pFilterStruct->Nstates+1);
+        filter_struct->pXsigma_ukf = PGMATRIX_ALLOC(filter_struct->Nstates, 2*filter_struct->Nstates+1);
+        filter_struct->pWsigma_ukf = PGMATRIX_ALLOC(1, 2*filter_struct->Nstates+1);
     }
 
-    pFilterStruct->pQ = PGMATRIX_ALLOC(pFilterStruct->Nstates, pFilterStruct->Nstates);
-    PGMATRIX_ZEROES(pFilterStruct->pQ);
-    PGMATRIX_DATA(pFilterStruct->pQ, 1, 1) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_Q_MATRIX_Q0);
-    PGMATRIX_DATA(pFilterStruct->pQ, 2, 2) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_Q_MATRIX_Q1);
-    PGMATRIX_DATA(pFilterStruct->pQ, 3, 3) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_Q_MATRIX_Q2);
-    PGMATRIX_DATA(pFilterStruct->pQ, 4, 4) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_Q_MATRIX_Q3);
+    filter_struct->pQ = PGMATRIX_ALLOC(filter_struct->Nstates, filter_struct->Nstates);
+    PGMATRIX_ZEROES(filter_struct->pQ);
+    PGMATRIX_DATA(filter_struct->pQ, 1, 1) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_Q_MATRIX_Q0);
+    PGMATRIX_DATA(filter_struct->pQ, 2, 2) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_Q_MATRIX_Q1);
+    PGMATRIX_DATA(filter_struct->pQ, 3, 3) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_Q_MATRIX_Q2);
+    PGMATRIX_DATA(filter_struct->pQ, 4, 4) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_Q_MATRIX_Q3);
 
-    PGMATRIX_DATA(pFilterStruct->pQ, 5, 5) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_Q_MATRIX_POSITION_X);
-    PGMATRIX_DATA(pFilterStruct->pQ, 6, 6) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_Q_MATRIX_POSITION_Y);
-    PGMATRIX_DATA(pFilterStruct->pQ, 7, 7) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_Q_MATRIX_POSITION_Z);
+    PGMATRIX_DATA(filter_struct->pQ, 5, 5) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_Q_MATRIX_POSITION_X);
+    PGMATRIX_DATA(filter_struct->pQ, 6, 6) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_Q_MATRIX_POSITION_Y);
+    PGMATRIX_DATA(filter_struct->pQ, 7, 7) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_Q_MATRIX_POSITION_Z);
 
-    PGMATRIX_DATA(pFilterStruct->pQ, 8, 8) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_Q_MATRIX_VELOCITY_X);
-    PGMATRIX_DATA(pFilterStruct->pQ, 9, 9) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_Q_MATRIX_VELOCITY_Y);
-    PGMATRIX_DATA(pFilterStruct->pQ, 10, 10) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_Q_MATRIX_VELOCITY_Z);
+    PGMATRIX_DATA(filter_struct->pQ, 8, 8) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_Q_MATRIX_VELOCITY_X);
+    PGMATRIX_DATA(filter_struct->pQ, 9, 9) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_Q_MATRIX_VELOCITY_Y);
+    PGMATRIX_DATA(filter_struct->pQ, 10, 10) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_Q_MATRIX_VELOCITY_Z);
 
-    if(pFilterStruct->FlagEstimateAccelerometerBias)
+    if(filter_struct->FlagEstimateAccelerometerBias)
     {
-        PGMATRIX_DATA(pFilterStruct->pQ, 11, 11) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_Q_MATRIX_ACCELEROMETER_BIAS_X);
-        PGMATRIX_DATA(pFilterStruct->pQ, 12, 12) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_Q_MATRIX_ACCELEROMETER_BIAS_Y);
-        PGMATRIX_DATA(pFilterStruct->pQ, 13, 13) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_Q_MATRIX_ACCELEROMETER_BIAS_Z);
+        PGMATRIX_DATA(filter_struct->pQ, 11, 11) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_Q_MATRIX_ACCELEROMETER_BIAS_X);
+        PGMATRIX_DATA(filter_struct->pQ, 12, 12) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_Q_MATRIX_ACCELEROMETER_BIAS_Y);
+        PGMATRIX_DATA(filter_struct->pQ, 13, 13) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_Q_MATRIX_ACCELEROMETER_BIAS_Z);
     }
 
-    pFilterStruct->pR_pseudomeasurementnorm = PGMATRIX_ALLOC(1, 1);
-    PGMATRIX_DATA(pFilterStruct->pR_pseudomeasurementnorm, 1, 1) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_PSEUDOMEASUREMENTNORM);
+    filter_struct->pR_pseudomeasurementnorm = PGMATRIX_ALLOC(1, 1);
+    PGMATRIX_DATA(filter_struct->pR_pseudomeasurementnorm, 1, 1) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_PSEUDOMEASUREMENTNORM);
 
-    pFilterStruct->pR_convertedmeasurementtriad = PGMATRIX_ALLOC(4, 4);
-    PGMATRIX_ZEROES(pFilterStruct->pR_convertedmeasurementtriad);
+    filter_struct->pR_convertedmeasurementtriad = PGMATRIX_ALLOC(4, 4);
+    PGMATRIX_ZEROES(filter_struct->pR_convertedmeasurementtriad);
 
-    pFilterStruct->pR_accelerometer = PGMATRIX_ALLOC(3, 3);
-    PGMATRIX_ZEROES(pFilterStruct->pR_accelerometer);
+    filter_struct->pR_accelerometer = PGMATRIX_ALLOC(3, 3);
+    PGMATRIX_ZEROES(filter_struct->pR_accelerometer);
 
-    pFilterStruct->pR_magnetometer = PGMATRIX_ALLOC(3, 3);
-    PGMATRIX_ZEROES(pFilterStruct->pR_magnetometer);
+    filter_struct->pR_magnetometer = PGMATRIX_ALLOC(3, 3);
+    PGMATRIX_ZEROES(filter_struct->pR_magnetometer);
 
-    if(pFilterStruct->AlgorithmCode == LOCALIZATION_ALGORITHMCODE_CEKF)
+    if(filter_struct->AlgorithmCode == LOCALIZATION_ALGORITHMCODE_CEKF)
     {
-        PGMATRIX_DATA(pFilterStruct->pR_convertedmeasurementtriad, 1, 1) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_CONVERTEDMEASUREMENTTRIAD_CEKF_1_1);
-        PGMATRIX_DATA(pFilterStruct->pR_convertedmeasurementtriad, 2, 2) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_CONVERTEDMEASUREMENTTRIAD_CEKF_2_2);
-        PGMATRIX_DATA(pFilterStruct->pR_convertedmeasurementtriad, 3, 3) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_CONVERTEDMEASUREMENTTRIAD_CEKF_3_3);
-        PGMATRIX_DATA(pFilterStruct->pR_convertedmeasurementtriad, 4, 4) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_CONVERTEDMEASUREMENTTRIAD_CEKF_4_4);
+        PGMATRIX_DATA(filter_struct->pR_convertedmeasurementtriad, 1, 1) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_CONVERTEDMEASUREMENTTRIAD_CEKF_1_1);
+        PGMATRIX_DATA(filter_struct->pR_convertedmeasurementtriad, 2, 2) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_CONVERTEDMEASUREMENTTRIAD_CEKF_2_2);
+        PGMATRIX_DATA(filter_struct->pR_convertedmeasurementtriad, 3, 3) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_CONVERTEDMEASUREMENTTRIAD_CEKF_3_3);
+        PGMATRIX_DATA(filter_struct->pR_convertedmeasurementtriad, 4, 4) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_CONVERTEDMEASUREMENTTRIAD_CEKF_4_4);
     }
     else
     {
-        PGMATRIX_DATA(pFilterStruct->pR_convertedmeasurementtriad, 1, 1) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_CONVERTEDMEASUREMENTTRIAD_1_1);
-        PGMATRIX_DATA(pFilterStruct->pR_convertedmeasurementtriad, 2, 2) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_CONVERTEDMEASUREMENTTRIAD_2_2);
-        PGMATRIX_DATA(pFilterStruct->pR_convertedmeasurementtriad, 3, 3) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_CONVERTEDMEASUREMENTTRIAD_3_3);
-        PGMATRIX_DATA(pFilterStruct->pR_convertedmeasurementtriad, 4, 4) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_CONVERTEDMEASUREMENTTRIAD_4_4);
+        PGMATRIX_DATA(filter_struct->pR_convertedmeasurementtriad, 1, 1) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_CONVERTEDMEASUREMENTTRIAD_1_1);
+        PGMATRIX_DATA(filter_struct->pR_convertedmeasurementtriad, 2, 2) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_CONVERTEDMEASUREMENTTRIAD_2_2);
+        PGMATRIX_DATA(filter_struct->pR_convertedmeasurementtriad, 3, 3) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_CONVERTEDMEASUREMENTTRIAD_3_3);
+        PGMATRIX_DATA(filter_struct->pR_convertedmeasurementtriad, 4, 4) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_CONVERTEDMEASUREMENTTRIAD_4_4);
     }
 
-    if(pFilterStruct->AlgorithmCode == LOCALIZATION_ALGORITHMCODE_CEKF)
+    if(filter_struct->AlgorithmCode == LOCALIZATION_ALGORITHMCODE_CEKF)
     {
-        pFilterStruct->pS_previous_cekf = PGMATRIX_ALLOC(pFilterStruct->Nstates, 4);
-        PGMATRIX_ZEROES(pFilterStruct->pS_previous_cekf);
-        pFilterStruct->pR_previous_cekf = PGMATRIX_ALLOC(4, 4);
-        PGMATRIX_IDENTITY(pFilterStruct->pR_previous_cekf);
-        pFilterStruct->pA_imu_P_imu_cekf = PGMATRIX_ALLOC(pFilterStruct->Nstates, 6);
-        PGMATRIX_ZEROES(pFilterStruct->pA_imu_P_imu_cekf);
-        pFilterStruct->pinnovation_previous_cekf = PGMATRIX_ALLOC(4, 1);
-        PGMATRIX_ZEROES(pFilterStruct->pinnovation_previous_cekf);
+        filter_struct->pS_previous_cekf = PGMATRIX_ALLOC(filter_struct->Nstates, 4);
+        PGMATRIX_ZEROES(filter_struct->pS_previous_cekf);
+        filter_struct->pR_previous_cekf = PGMATRIX_ALLOC(4, 4);
+        PGMATRIX_IDENTITY(filter_struct->pR_previous_cekf);
+        filter_struct->pA_imu_P_imu_cekf = PGMATRIX_ALLOC(filter_struct->Nstates, 6);
+        PGMATRIX_ZEROES(filter_struct->pA_imu_P_imu_cekf);
+        filter_struct->pinnovation_previous_cekf = PGMATRIX_ALLOC(4, 1);
+        PGMATRIX_ZEROES(filter_struct->pinnovation_previous_cekf);
     }
 
-    if(pFilterStruct->AlgorithmCode == LOCALIZATION_ALGORITHMCODE_EKF_DECOUPLED)
+    if(filter_struct->AlgorithmCode == LOCALIZATION_ALGORITHMCODE_EKF_DECOUPLED)
     {
-        PGMATRIX_DATA(pFilterStruct->pR_accelerometer, 1, 1) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_ACCELEROMETER_EKF_DECOUPLED_1_1);
-        PGMATRIX_DATA(pFilterStruct->pR_accelerometer, 2, 2) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_ACCELEROMETER_EKF_DECOUPLED_2_2);
-        PGMATRIX_DATA(pFilterStruct->pR_accelerometer, 3, 3) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_ACCELEROMETER_EKF_DECOUPLED_3_3);
+        PGMATRIX_DATA(filter_struct->pR_accelerometer, 1, 1) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_ACCELEROMETER_EKF_DECOUPLED_1_1);
+        PGMATRIX_DATA(filter_struct->pR_accelerometer, 2, 2) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_ACCELEROMETER_EKF_DECOUPLED_2_2);
+        PGMATRIX_DATA(filter_struct->pR_accelerometer, 3, 3) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_ACCELEROMETER_EKF_DECOUPLED_3_3);
 
-        PGMATRIX_DATA(pFilterStruct->pR_magnetometer, 1, 1) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_MAGNETOMETER_EKF_DECOUPLED_1_1);
-        PGMATRIX_DATA(pFilterStruct->pR_magnetometer, 2, 2) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_MAGNETOMETER_EKF_DECOUPLED_2_2);
-        PGMATRIX_DATA(pFilterStruct->pR_magnetometer, 3, 3) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_MAGNETOMETER_EKF_DECOUPLED_3_3);
+        PGMATRIX_DATA(filter_struct->pR_magnetometer, 1, 1) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_MAGNETOMETER_EKF_DECOUPLED_1_1);
+        PGMATRIX_DATA(filter_struct->pR_magnetometer, 2, 2) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_MAGNETOMETER_EKF_DECOUPLED_2_2);
+        PGMATRIX_DATA(filter_struct->pR_magnetometer, 3, 3) = GMATRIXMACRO_SQR(FILTER_PARAMETERS_R_MAGNETOMETER_EKF_DECOUPLED_3_3);
     }
 
     return 1; 
 }
 
-int localization_close(PLOCALIZATIONFILTERSTRUCT pFilterStruct)
+int localization_close(LocalizationFilter *filter_struct)
 {
     // Desalocar componentes da estrutura do filtro
-    PGMATRIX_FREE(pFilterStruct->pX);
-    PGMATRIX_FREE(pFilterStruct->pP);
-    PGMATRIX_FREE(pFilterStruct->pPreset);
+    PGMATRIX_FREE(filter_struct->pX);
+    PGMATRIX_FREE(filter_struct->pP);
+    PGMATRIX_FREE(filter_struct->pPreset);
 
-    if(pFilterStruct->AlgorithmCode == LOCALIZATION_ALGORITHMCODE_UKF2)
+    if(filter_struct->AlgorithmCode == LOCALIZATION_ALGORITHMCODE_UKF2)
     {
-        PGMATRIX_FREE(pFilterStruct->pXsigma_ukf);
-        PGMATRIX_FREE(pFilterStruct->pWsigma_ukf);
+        PGMATRIX_FREE(filter_struct->pXsigma_ukf);
+        PGMATRIX_FREE(filter_struct->pWsigma_ukf);
     }
 
-    PGMATRIX_FREE(pFilterStruct->pQ);
+    PGMATRIX_FREE(filter_struct->pQ);
 
-    PGMATRIX_FREE(pFilterStruct->pR_accelerometer);
-    PGMATRIX_FREE(pFilterStruct->pR_magnetometer);
-    PGMATRIX_FREE(pFilterStruct->pR_pseudomeasurementnorm);
+    PGMATRIX_FREE(filter_struct->pR_accelerometer);
+    PGMATRIX_FREE(filter_struct->pR_magnetometer);
+    PGMATRIX_FREE(filter_struct->pR_pseudomeasurementnorm);
 
-    PGMATRIX_FREE(pFilterStruct->pR_convertedmeasurementtriad);
+    PGMATRIX_FREE(filter_struct->pR_convertedmeasurementtriad);
 
-    if(pFilterStruct->AlgorithmCode == LOCALIZATION_ALGORITHMCODE_CEKF)
+    if(filter_struct->AlgorithmCode == LOCALIZATION_ALGORITHMCODE_CEKF)
     {
-        PGMATRIX_FREE(pFilterStruct->pS_previous_cekf);
-        PGMATRIX_FREE(pFilterStruct->pR_previous_cekf);
-        PGMATRIX_FREE(pFilterStruct->pA_imu_P_imu_cekf);
-        PGMATRIX_FREE(pFilterStruct->pinnovation_previous_cekf);
+        PGMATRIX_FREE(filter_struct->pS_previous_cekf);
+        PGMATRIX_FREE(filter_struct->pR_previous_cekf);
+        PGMATRIX_FREE(filter_struct->pA_imu_P_imu_cekf);
+        PGMATRIX_FREE(filter_struct->pinnovation_previous_cekf);
     }
 
     // Retorna
     return 1; 
 }
 
-int localization_filter_correction(PLOCALIZATIONFILTERSTRUCT pFilterStruct, PGPSMEASURE pGPSMeasure, PIMUMEASURE pIMUMeasure, PMAGNETOMETERMEASURE pMagnetometerMeasure, PSONARMEASURE pSonarMeasure, PGMATRIX pM, PGMATRIX pG, double T)
+int localization_filter_correction(LocalizationFilter *filter_struct, GpsMeasure *gps_measure_ptr, ImuMeasure *imu_measure_ptr, MagnetometerMeasure *magnetometer_measure_ptr, SonarMeasure *sonar_measure_ptr, PGMATRIX pM, PGMATRIX pG, double T)
 {
     // Corre��o conforme a arquitetura
-    switch(pFilterStruct->AlgorithmCode)
+    switch(filter_struct->AlgorithmCode)
     {
     case LOCALIZATION_ALGORITHMCODE_EKF2:
-        if(!localization_filter_correction_ekf2(pFilterStruct, pGPSMeasure, pIMUMeasure, pMagnetometerMeasure, pSonarMeasure, pM, pG, T)) return 0;
+        if(!localization_filter_correction_ekf2(filter_struct, gps_measure_ptr, imu_measure_ptr, magnetometer_measure_ptr, sonar_measure_ptr, pM, pG, T)) return 0;
         break;
     case LOCALIZATION_ALGORITHMCODE_CEKF:
-        if(!localization_filter_correction_cekf(pFilterStruct, pGPSMeasure, pIMUMeasure, pMagnetometerMeasure, pSonarMeasure, pM, pG, T)) return 0;
+        if(!localization_filter_correction_cekf(filter_struct, gps_measure_ptr, imu_measure_ptr, magnetometer_measure_ptr, sonar_measure_ptr, pM, pG, T)) return 0;
         break;
     case LOCALIZATION_ALGORITHMCODE_EKF_DECOUPLED:
-        if(!localization_filter_correction_ekf_decoupled(pFilterStruct, pGPSMeasure, pIMUMeasure, pMagnetometerMeasure, pSonarMeasure, pM, pG, T)) return 0;
+        if(!localization_filter_correction_ekf_decoupled(filter_struct, gps_measure_ptr, imu_measure_ptr, magnetometer_measure_ptr, sonar_measure_ptr, pM, pG, T)) return 0;
         break;
     default:
         return 0;
@@ -178,28 +178,28 @@ int localization_filter_correction(PLOCALIZATIONFILTERSTRUCT pFilterStruct, PGPS
 }
 
 
-void localization_filter_quaternionscorrectsign(PLOCALIZATIONFILTERSTRUCT pFilterStruct, PGMATRIX pX_predicted)
+void localization_filter_quaternionscorrectsign(LocalizationFilter *filter_struct, PGMATRIX pX_predicted)
 {
 
     QUATERNIONS_DECLARE(qcurrent);
     QUATERNIONS_DECLARE(qpredicted);
 
-    QUATERNIONS_Q0(qcurrent) = PGMATRIX_DATA(pFilterStruct->pX,X_q0, 1);
-    QUATERNIONS_Q1(qcurrent) = PGMATRIX_DATA(pFilterStruct->pX,X_q1, 1);
-    QUATERNIONS_Q2(qcurrent) = PGMATRIX_DATA(pFilterStruct->pX,X_q2, 1);
-    QUATERNIONS_Q3(qcurrent) = PGMATRIX_DATA(pFilterStruct->pX,X_q3, 1);
+    QUATERNIONS_Q0(qcurrent) = PGMATRIX_DATA(filter_struct->pX,X_q0, 1);
+    QUATERNIONS_Q1(qcurrent) = PGMATRIX_DATA(filter_struct->pX,X_q1, 1);
+    QUATERNIONS_Q2(qcurrent) = PGMATRIX_DATA(filter_struct->pX,X_q2, 1);
+    QUATERNIONS_Q3(qcurrent) = PGMATRIX_DATA(filter_struct->pX,X_q3, 1);
     QUATERNIONS_Q0(qpredicted) = PGMATRIX_DATA(pX_predicted,X_q0, 1);
     QUATERNIONS_Q1(qpredicted) = PGMATRIX_DATA(pX_predicted,X_q1, 1);
     QUATERNIONS_Q2(qpredicted) = PGMATRIX_DATA(pX_predicted,X_q2, 1);
     QUATERNIONS_Q3(qpredicted) = PGMATRIX_DATA(pX_predicted,X_q3, 1);
     rotation_quaternionscorrectsign(&qcurrent, &qpredicted);
-    PGMATRIX_DATA(pFilterStruct->pX,X_q0,1) = QUATERNIONS_Q0(qcurrent);
-    PGMATRIX_DATA(pFilterStruct->pX,X_q1,1) = QUATERNIONS_Q1(qcurrent);
-    PGMATRIX_DATA(pFilterStruct->pX,X_q2,1) = QUATERNIONS_Q2(qcurrent);
-    PGMATRIX_DATA(pFilterStruct->pX,X_q3,1) = QUATERNIONS_Q3(qcurrent);
+    PGMATRIX_DATA(filter_struct->pX,X_q0,1) = QUATERNIONS_Q0(qcurrent);
+    PGMATRIX_DATA(filter_struct->pX,X_q1,1) = QUATERNIONS_Q1(qcurrent);
+    PGMATRIX_DATA(filter_struct->pX,X_q2,1) = QUATERNIONS_Q2(qcurrent);
+    PGMATRIX_DATA(filter_struct->pX,X_q3,1) = QUATERNIONS_Q3(qcurrent);
 }
 
-int localization_filter_correction_cekf(PLOCALIZATIONFILTERSTRUCT pFilterStruct, PGPSMEASURE pGPSMeasure, PIMUMEASURE pIMUMeasure, PMAGNETOMETERMEASURE pMagnetometerMeasure, PSONARMEASURE pSonarMeasure, PGMATRIX pM, PGMATRIX pG, double T)
+int localization_filter_correction_cekf(LocalizationFilter *filter_struct, GpsMeasure *gps_measure_ptr, ImuMeasure *imu_measure_ptr, MagnetometerMeasure *magnetometer_measure_ptr, SonarMeasure *sonar_measure_ptr, PGMATRIX pM, PGMATRIX pG, double T)
 {
 // %%% corrige usando medidas do algoritmo TRIAD: 
 // %%% Fun�ao de medi�ao: [eye(4) zeros(4,6)]*X (a medida � dada pelo estimador TRIAD.
@@ -229,25 +229,25 @@ int localization_filter_correction_cekf(PLOCALIZATIONFILTERSTRUCT pFilterStruct,
     MatDummy.pMat4 = &MatDummy4;
 
     // Defini��o dos tamanhos das matrizes deve ser feito aqui, o que evita aloca��o dim�mica
-    GMATRIX_SETSIZE(X_predicted, pFilterStruct->Nstates, 1);
-    GMATRIX_SETSIZE(P_predicted, pFilterStruct->Nstates, pFilterStruct->Nstates);
-    GMATRIX_SETSIZE(Stilde, pFilterStruct->Nstates, 1);
+    GMATRIX_SETSIZE(X_predicted, filter_struct->Nstates, 1);
+    GMATRIX_SETSIZE(P_predicted, filter_struct->Nstates, filter_struct->Nstates);
+    GMATRIX_SETSIZE(Stilde, filter_struct->Nstates, 1);
 
     // Medi��o pelo TRIAD
-    if(pMagnetometerMeasure->FlagValidMeasure)
+    if(magnetometer_measure_ptr->FlagValidMeasure)
     {
         // X = kf_structure.X;
-        PGMATRIX_COPY(&X_predicted, pFilterStruct->pX);
+        PGMATRIX_COPY(&X_predicted, filter_struct->pX);
 
         // P = kf_structure.P;
-        PGMATRIX_COPY(&P_predicted, pFilterStruct->pP);
+        PGMATRIX_COPY(&P_predicted, filter_struct->pP);
 
         // if kf_structure.flagestimateaccelerometerbias
         //     H = [eye(4) zeros(4,9)];
         // else
         //     H = [eye(4) zeros(4,6)];
         // end
-        if (pFilterStruct->FlagEstimateAccelerometerBias)
+        if (filter_struct->FlagEstimateAccelerometerBias)
         {
             GMATRIX_SETSIZE(H, 4, 13);
             GMATRIX_ZEROES(H);
@@ -265,7 +265,7 @@ int localization_filter_correction_cekf(PLOCALIZATIONFILTERSTRUCT pFilterStruct,
         // [Ym,Py] = ConvertedMeasurementTRIAD('cekf',X, P, imumeasure, magnetometermeasure, M, G, kf_structure.flagestimateaccelerometerbias);
         GMATRIX_SETSIZE(Ym, 4, 1);
         GMATRIX_SETSIZE(Py, 4, 4);
-        localization_converted_measurement_triad(&Ym, &Py, &X_predicted, &P_predicted, pIMUMeasure, pMagnetometerMeasure, pM, pG, pFilterStruct->FlagEstimateAccelerometerBias);
+        localization_converted_measurement_triad(&Ym, &Py, &X_predicted, &P_predicted, imu_measure_ptr, magnetometer_measure_ptr, pM, pG, filter_struct->FlagEstimateAccelerometerBias);
 //      GMATRIX_PRINT_MATLABFORM(Ym);
 //      GMATRIX_PRINT_MATLABFORM(Py);
 
@@ -274,48 +274,48 @@ int localization_filter_correction_cekf(PLOCALIZATIONFILTERSTRUCT pFilterStruct,
         PGMATRIX_SUBTRACT_COPY(&V, &Ym, MatDummy.pMat1);
 
         // Rtilde = Py + kf_structure.R_convertedmeasurementtriad_cekf;
-        PGMATRIX_ADD_COPY(&Rtilde, &Py, pFilterStruct->pR_convertedmeasurementtriad);
+        PGMATRIX_ADD_COPY(&Rtilde, &Py, filter_struct->pR_convertedmeasurementtriad);
 
         // Stilde = kf_structure.A_imu_P_imu_cekf * localization_filter_model_gtriad('dg_du_imu',X, P, imumeasure, magnetometermeasure, M, G, kf_structure.flagestimateaccelerometerbias,1)';
-        localization_converted_measurement_triad_dg_du_imu(&dg_du_imu, &X_predicted, &P_predicted, pIMUMeasure, pMagnetometerMeasure, pM, pG, pFilterStruct->FlagEstimateAccelerometerBias);
-        PGMATRIX_MULTIPLY_COPY_EXTENDED(&Stilde, pFilterStruct->pA_imu_P_imu_cekf, 0, &dg_du_imu, 1);
+        localization_converted_measurement_triad_dg_du_imu(&dg_du_imu, &X_predicted, &P_predicted, imu_measure_ptr, magnetometer_measure_ptr, pM, pG, filter_struct->FlagEstimateAccelerometerBias);
+        PGMATRIX_MULTIPLY_COPY_EXTENDED(&Stilde, filter_struct->pA_imu_P_imu_cekf, 0, &dg_du_imu, 1);
 
         // K = P*(H')*inv(H*P*(H') + Py + kf_structure.R_convertedmeasurementtriad_ekf);
         // kf_structure.X = X + K*v;
         // kf_structure.P = (eye(kf_structure.Nstates) - K*H)*P;
-        PGMATRIX_ADD_COPY(&R, &Py, pFilterStruct->pR_convertedmeasurementtriad);
-        kalman_EKF_update_innovationform(pFilterStruct->pX, &X_predicted, &V, pFilterStruct->pP, &P_predicted, &R, &H, &MatDummy, 1);
+        PGMATRIX_ADD_COPY(&R, &Py, filter_struct->pR_convertedmeasurementtriad);
+        kalman_EKF_update_innovationform(filter_struct->pX, &X_predicted, &V, filter_struct->pP, &P_predicted, &R, &H, &MatDummy, 1);
 
         // kf_structure.X(1:4) = quaternions_correctsign(kf_structure.X(1:4), X(1:4));
-        localization_filter_quaternionscorrectsign(pFilterStruct, &X_predicted);
+        localization_filter_quaternionscorrectsign(filter_struct, &X_predicted);
 
         // kf_structure.R_previous_cekf = Rtilde;
-        PGMATRIX_COPY(pFilterStruct->pR_previous_cekf, &Rtilde);
+        PGMATRIX_COPY(filter_struct->pR_previous_cekf, &Rtilde);
 
         // kf_structure.S_previous_cekf = Stilde;
-        PGMATRIX_COPY(pFilterStruct->pS_previous_cekf, &Stilde);
+        PGMATRIX_COPY(filter_struct->pS_previous_cekf, &Stilde);
 
         // kf_structure.innovation_previous_cekf = (Ym - H*kf_structure.X);
-        PGMATRIX_MULTIPLY_COPY(MatDummy.pMat1, &H, pFilterStruct->pX);
+        PGMATRIX_MULTIPLY_COPY(MatDummy.pMat1, &H, filter_struct->pX);
         PGMATRIX_SUBTRACT_COPY(&V, &Ym, MatDummy.pMat1);
-        PGMATRIX_COPY(pFilterStruct->pinnovation_previous_cekf, &V);
+        PGMATRIX_COPY(filter_struct->pinnovation_previous_cekf, &V);
     }
 
     // %%% corrige usando medidas do GPS:
     // %%% Fun�ao de medi�ao: [zeros(3,4) eye(3,3) zeros(3,3)]*X
-    if(pGPSMeasure->FlagValidPositionMeasure)
+    if(gps_measure_ptr->FlagValidPositionMeasure)
     {
         // X = kf_structure.X;
-        PGMATRIX_COPY(&X_predicted, pFilterStruct->pX);
+        PGMATRIX_COPY(&X_predicted, filter_struct->pX);
 
         // P = kf_structure.P;
-        PGMATRIX_COPY(&P_predicted, pFilterStruct->pP);
+        PGMATRIX_COPY(&P_predicted, filter_struct->pP);
         // if kf_structure.flagestimateaccelerometerbias
         //     H = [zeros(3,4) eye(3,3) zeros(3,3) zeros(3,3)];
         // else
         //     H = [zeros(3,4) eye(3,3) zeros(3,3)];
         // end
-        if (pFilterStruct->FlagEstimateAccelerometerBias)
+        if (filter_struct->FlagEstimateAccelerometerBias)
         {
             GMATRIX_SETSIZE(H,3,13);
             GMATRIX_ZEROES(H);
@@ -330,33 +330,33 @@ int localization_filter_correction_cekf(PLOCALIZATIONFILTERSTRUCT pFilterStruct,
         GMATRIX_DATA(H,3,7) = 1.0;
         // v = (gpsmeasure.p - H*X);
         PGMATRIX_MULTIPLY_COPY(MatDummy.pMat1, &H, &X_predicted);
-        PGMATRIX_SUBTRACT_COPY(&V, pGPSMeasure->pPosition, MatDummy.pMat1);
+        PGMATRIX_SUBTRACT_COPY(&V, gps_measure_ptr->pPosition, MatDummy.pMat1);
 
         // K = P*(H')*inv(H*P*(H') + gpsmeasure.P_p);
         // kf_structure.X = X + K*v;
         // kf_structure.P = (eye(kf_structure.Nstates) - K*H)*P;
-        PGMATRIX_COPY(&R,pGPSMeasure->pPPosition);
-        kalman_EKF_update_innovationform(pFilterStruct->pX, &X_predicted, &V, pFilterStruct->pP, &P_predicted, &R, &H, &MatDummy, 1);
+        PGMATRIX_COPY(&R,gps_measure_ptr->pPPosition);
+        kalman_EKF_update_innovationform(filter_struct->pX, &X_predicted, &V, filter_struct->pP, &P_predicted, &R, &H, &MatDummy, 1);
 
         // kf_structure.X(1:4) = quaternions_correctsign(kf_structure.X(1:4), X(1:4));
-        localization_filter_quaternionscorrectsign(pFilterStruct, &X_predicted);
+        localization_filter_quaternionscorrectsign(filter_struct, &X_predicted);
     }
 
 // %%% corrige usando medidas do GPS:
 // %%% Fun�ao de medi�ao: [zeros(3,4) zeros(3,3) eye(3,3)]*X
-    if(pGPSMeasure->FlagValidVelocityMeasure)
+    if(gps_measure_ptr->FlagValidVelocityMeasure)
     {
         // X = kf_structure.X;
-        PGMATRIX_COPY(&X_predicted, pFilterStruct->pX);
+        PGMATRIX_COPY(&X_predicted, filter_struct->pX);
 
         // P = kf_structure.P;
-        PGMATRIX_COPY(&P_predicted, pFilterStruct->pP);
+        PGMATRIX_COPY(&P_predicted, filter_struct->pP);
         // if kf_structure.flagestimateaccelerometerbias
         //     H = [zeros(3,4) zeros(3,3) eye(3,3) zeros(3,3)];
         // else
         //     H = [zeros(3,4) zeros(3,3) eye(3,3)];
         // end
-        if (pFilterStruct->FlagEstimateAccelerometerBias)
+        if (filter_struct->FlagEstimateAccelerometerBias)
         {
             GMATRIX_SETSIZE(H, 3, 13);
             GMATRIX_ZEROES(H);
@@ -371,28 +371,28 @@ int localization_filter_correction_cekf(PLOCALIZATIONFILTERSTRUCT pFilterStruct,
         GMATRIX_DATA(H, 3, 10) = 1.0;
         // v = (gpsmeasure.v - H*X);
         PGMATRIX_MULTIPLY_COPY(MatDummy.pMat1, &H, &X_predicted);
-        PGMATRIX_SUBTRACT_COPY(&V, pGPSMeasure->pVelocity, MatDummy.pMat1);
+        PGMATRIX_SUBTRACT_COPY(&V, gps_measure_ptr->pVelocity, MatDummy.pMat1);
 
         // K = P*(H')*inv(H*P*(H') + gpsmeasure.P_v);
         // kf_structure.X = X + K*v;
         // kf_structure.P = (eye(kf_structure.Nstates) - K*H)*P;
-        PGMATRIX_COPY(&R,pGPSMeasure->pPVelocity);
-        kalman_EKF_update_innovationform(pFilterStruct->pX, &X_predicted, &V, pFilterStruct->pP, &P_predicted, &R, &H, &MatDummy, 1);
+        PGMATRIX_COPY(&R,gps_measure_ptr->pPVelocity);
+        kalman_EKF_update_innovationform(filter_struct->pX, &X_predicted, &V, filter_struct->pP, &P_predicted, &R, &H, &MatDummy, 1);
 
         // kf_structure.X(1:4) = quaternions_correctsign(kf_structure.X(1:4), X(1:4));
-        localization_filter_quaternionscorrectsign(pFilterStruct, &X_predicted);
+        localization_filter_quaternionscorrectsign(filter_struct, &X_predicted);
     }
 
 // %%% corrige usando medidas do sonar:
 // %%% Fun�ao de medi�ao: 2z/(q0^2 - q1^2 - q2^2 + q3^2)
 // %%% Fun�ao de medi�ao codificada em estado: X(7)/(X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2);
-    if(pSonarMeasure->FlagValidMeasure)
+    if(sonar_measure_ptr->FlagValidMeasure)
     {
         // X = kf_structure.X;
-        PGMATRIX_COPY(&X_predicted, pFilterStruct->pX);
+        PGMATRIX_COPY(&X_predicted, filter_struct->pX);
 
         // P = kf_structure.P;
-        PGMATRIX_COPY(&P_predicted, pFilterStruct->pP);
+        PGMATRIX_COPY(&P_predicted, filter_struct->pP);
         // dHdX1 = -X(7)*(((X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2))^(-2))*2*X(1);
         // dHdX2 =  X(7)*(((X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2))^(-2))*2*X(2);
         // dHdX3 =  X(7)*(((X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2))^(-2))*2*X(3);
@@ -403,7 +403,7 @@ int localization_filter_correction_cekf(PLOCALIZATIONFILTERSTRUCT pFilterStruct,
         // else
         //     H = [dHdX1 dHdX2 dHdX3 dHdX4 0 0 dHdX7 0 0 0];
         // end
-        if (pFilterStruct->FlagEstimateAccelerometerBias)
+        if (filter_struct->FlagEstimateAccelerometerBias)
         {
             GMATRIX_SETSIZE(H,1,13);
             GMATRIX_ZEROES(H);
@@ -426,27 +426,27 @@ int localization_filter_correction_cekf(PLOCALIZATIONFILTERSTRUCT pFilterStruct,
 
             // v = (sonarmeasure.range - (X(7)/(X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2)));
             GMATRIX_SETSIZE(V,1,1);
-            GMATRIX_DATA(V,1,1) = pSonarMeasure->range - GMATRIX_DATA(X_predicted,7,1) / aux;
+            GMATRIX_DATA(V,1,1) = sonar_measure_ptr->range - GMATRIX_DATA(X_predicted,7,1) / aux;
 
             // K = P*(H')*inv(H*P*(H') + sonarmeasure.rangevariance);
             // kf_structure.X = X + K*v;
             // kf_structure.P = (eye(kf_structure.Nstates) - K*H)*P;
             GMATRIX_SETSIZE(R,1,1);
-            GMATRIX_DATA(R,1,1) = pSonarMeasure->rangevariance;
-            kalman_EKF_update_innovationform(pFilterStruct->pX, &X_predicted, &V, pFilterStruct->pP, &P_predicted, &R, &H, &MatDummy, 1);
+            GMATRIX_DATA(R,1,1) = sonar_measure_ptr->rangevariance;
+            kalman_EKF_update_innovationform(filter_struct->pX, &X_predicted, &V, filter_struct->pP, &P_predicted, &R, &H, &MatDummy, 1);
 
             // kf_structure.X(1:4) = quaternions_correctsign(kf_structure.X(1:4), X(1:4));
-            localization_filter_quaternionscorrectsign(pFilterStruct, &X_predicted);
+            localization_filter_quaternionscorrectsign(filter_struct, &X_predicted);
         }
     }
 // %%% corrige a norma do quaternion usando pseudo-medi�oes:
 // %%% Fun�ao de medi�ao: 1 = q0^2 + q1^2 + q2^2 + q3^2
 // %%% Fun�ao de medi�ao codificada em estado: X(1)^2 + X(2)^2 + X(3)^2 + X(4)^2;
     // X = kf_structure.X;
-    PGMATRIX_COPY(&X_predicted, pFilterStruct->pX);
+    PGMATRIX_COPY(&X_predicted, filter_struct->pX);
 
     // P = kf_structure.P;
-    PGMATRIX_COPY(&P_predicted, pFilterStruct->pP);
+    PGMATRIX_COPY(&P_predicted, filter_struct->pP);
     // dHdX1 = 2*X(1);
     // dHdX2 = 2*X(2);
     // dHdX3 = 2*X(3);
@@ -456,7 +456,7 @@ int localization_filter_correction_cekf(PLOCALIZATIONFILTERSTRUCT pFilterStruct,
     // else
     //     H = [dHdX1 dHdX2 dHdX3 dHdX4 0 0 0 0 0 0];
     // end
-    if (pFilterStruct->FlagEstimateAccelerometerBias)
+    if (filter_struct->FlagEstimateAccelerometerBias)
     {
         GMATRIX_SETSIZE(H,1,13);
         GMATRIX_ZEROES(H);
@@ -480,15 +480,15 @@ int localization_filter_correction_cekf(PLOCALIZATIONFILTERSTRUCT pFilterStruct,
     // kf_structure.X = X + K*v;
     // kf_structure.P = (eye(kf_structure.Nstates) - K*H)*P;
     GMATRIX_SETSIZE(R, 1, 1);
-    PGMATRIX_COPY(&R, pFilterStruct->pR_pseudomeasurementnorm);
-    kalman_EKF_update_innovationform(pFilterStruct->pX, &X_predicted, &V, pFilterStruct->pP, &P_predicted, &R, &H, &MatDummy, 1);
-    localization_filter_quaternionscorrectsign(pFilterStruct, &X_predicted);
+    PGMATRIX_COPY(&R, filter_struct->pR_pseudomeasurementnorm);
+    kalman_EKF_update_innovationform(filter_struct->pX, &X_predicted, &V, filter_struct->pP, &P_predicted, &R, &H, &MatDummy, 1);
+    localization_filter_quaternionscorrectsign(filter_struct, &X_predicted);
 
     // Retorna
     return 1; 
 }
 
-int localization_filter_correction_ekf2(PLOCALIZATIONFILTERSTRUCT pFilterStruct, PGPSMEASURE pGPSMeasure, PIMUMEASURE pIMUMeasure, PMAGNETOMETERMEASURE pMagnetometerMeasure, PSONARMEASURE pSonarMeasure, PGMATRIX pM, PGMATRIX pG, double T)
+int localization_filter_correction_ekf2(LocalizationFilter *filter_struct, GpsMeasure *gps_measure_ptr, ImuMeasure *imu_measure_ptr, MagnetometerMeasure *magnetometer_measure_ptr, SonarMeasure *sonar_measure_ptr, PGMATRIX pM, PGMATRIX pG, double T)
 {
 // %%% corrige usando medidas do algoritmo TRIAD: 
 // %%% Fun�ao de medi�ao: [eye(4) zeros(4,6)]*X (a medida � dada pelo estimador TRIAD.
@@ -514,24 +514,24 @@ int localization_filter_correction_ekf2(PLOCALIZATIONFILTERSTRUCT pFilterStruct,
     MatDummy.pMat4 = &MatDummy4;
 
     // Defini��o dos tamanhos das matrizes deve ser feito aqui, o que evita aloca��o dim�mica
-    GMATRIX_SETSIZE(X_predicted, pFilterStruct->Nstates, 1);
-    GMATRIX_SETSIZE(P_predicted, pFilterStruct->Nstates, pFilterStruct->Nstates);
+    GMATRIX_SETSIZE(X_predicted, filter_struct->Nstates, 1);
+    GMATRIX_SETSIZE(P_predicted, filter_struct->Nstates, filter_struct->Nstates);
 
     // Medi��o pelo TRIAD
-    if(pMagnetometerMeasure->FlagValidMeasure)
+    if(magnetometer_measure_ptr->FlagValidMeasure)
     {
         // X = kf_structure.X;
-        PGMATRIX_COPY(&X_predicted, pFilterStruct->pX);
+        PGMATRIX_COPY(&X_predicted, filter_struct->pX);
 
         // P = kf_structure.P;
-        PGMATRIX_COPY(&P_predicted, pFilterStruct->pP);
+        PGMATRIX_COPY(&P_predicted, filter_struct->pP);
 
         // if kf_structure.flagestimateaccelerometerbias
         //     H = [eye(4) zeros(4,9)];
         // else
         //     H = [eye(4) zeros(4,6)];
         // end
-        if (pFilterStruct->FlagEstimateAccelerometerBias)
+        if (filter_struct->FlagEstimateAccelerometerBias)
         {
             GMATRIX_SETSIZE(H, 4, 13);
             GMATRIX_ZEROES(H);
@@ -549,7 +549,7 @@ int localization_filter_correction_ekf2(PLOCALIZATIONFILTERSTRUCT pFilterStruct,
         // [Ym,Py] = ConvertedMeasurementTRIAD('ekf2',X, P, imumeasure, magnetometermeasure, M, G, kf_structure.flagestimateaccelerometerbias);
         GMATRIX_SETSIZE(Ym, 4, 1);
         GMATRIX_SETSIZE(Py, 4, 4);
-        localization_converted_measurement_triad(&Ym, &Py, &X_predicted, &P_predicted, pIMUMeasure, pMagnetometerMeasure, pM, pG, pFilterStruct->FlagEstimateAccelerometerBias);
+        localization_converted_measurement_triad(&Ym, &Py, &X_predicted, &P_predicted, imu_measure_ptr, magnetometer_measure_ptr, pM, pG, filter_struct->FlagEstimateAccelerometerBias);
 //      GMATRIX_PRINT_MATLABFORM(Ym);
 //      GMATRIX_PRINT_MATLABFORM(Py);
 
@@ -560,28 +560,28 @@ int localization_filter_correction_ekf2(PLOCALIZATIONFILTERSTRUCT pFilterStruct,
         // K = P*(H')*inv(H*P*(H') + Py + kf_structure.R_convertedmeasurementtriad_ekf);
         // kf_structure.X = X + K*v;
         // kf_structure.P = (eye(kf_structure.Nstates) - K*H)*P;
-        PGMATRIX_ADD_COPY(&R, &Py, pFilterStruct->pR_convertedmeasurementtriad);
-        kalman_EKF_update_innovationform(pFilterStruct->pX, &X_predicted, &V, pFilterStruct->pP, &P_predicted, &R, &H, &MatDummy, 1);
+        PGMATRIX_ADD_COPY(&R, &Py, filter_struct->pR_convertedmeasurementtriad);
+        kalman_EKF_update_innovationform(filter_struct->pX, &X_predicted, &V, filter_struct->pP, &P_predicted, &R, &H, &MatDummy, 1);
 
         // kf_structure.X(1:4) = quaternions_correctsign(kf_structure.X(1:4), X(1:4));
-        localization_filter_quaternionscorrectsign(pFilterStruct, &X_predicted);
+        localization_filter_quaternionscorrectsign(filter_struct, &X_predicted);
     }
 
     // %%% corrige usando medidas do GPS:
     // %%% Fun�ao de medi�ao: [zeros(3,4) eye(3,3) zeros(3,3)]*X
-    if(pGPSMeasure->FlagValidPositionMeasure)
+    if(gps_measure_ptr->FlagValidPositionMeasure)
     {
         // X = kf_structure.X;
-        PGMATRIX_COPY(&X_predicted, pFilterStruct->pX);
+        PGMATRIX_COPY(&X_predicted, filter_struct->pX);
 
         // P = kf_structure.P;
-        PGMATRIX_COPY(&P_predicted, pFilterStruct->pP);
+        PGMATRIX_COPY(&P_predicted, filter_struct->pP);
         // if kf_structure.flagestimateaccelerometerbias
         //     H = [zeros(3,4) eye(3,3) zeros(3,3) zeros(3,3)];
         // else
         //     H = [zeros(3,4) eye(3,3) zeros(3,3)];
         // end
-        if (pFilterStruct->FlagEstimateAccelerometerBias)
+        if (filter_struct->FlagEstimateAccelerometerBias)
         {
             GMATRIX_SETSIZE(H, 3, 13);
             GMATRIX_ZEROES(H);
@@ -596,33 +596,33 @@ int localization_filter_correction_ekf2(PLOCALIZATIONFILTERSTRUCT pFilterStruct,
         GMATRIX_DATA(H, 3, 7) = 1.0;
         // v = (gpsmeasure.p - H*X);
         PGMATRIX_MULTIPLY_COPY(MatDummy.pMat1, &H, &X_predicted);
-        PGMATRIX_SUBTRACT_COPY(&V, pGPSMeasure->pPosition, MatDummy.pMat1);
+        PGMATRIX_SUBTRACT_COPY(&V, gps_measure_ptr->pPosition, MatDummy.pMat1);
 
         // K = P*(H')*inv(H*P*(H') + gpsmeasure.P_p);
         // kf_structure.X = X + K*v;
         // kf_structure.P = (eye(kf_structure.Nstates) - K*H)*P;
-        PGMATRIX_COPY(&R,pGPSMeasure->pPPosition);
-        kalman_EKF_update_innovationform(pFilterStruct->pX, &X_predicted, &V, pFilterStruct->pP, &P_predicted, &R, &H, &MatDummy, 1);
+        PGMATRIX_COPY(&R,gps_measure_ptr->pPPosition);
+        kalman_EKF_update_innovationform(filter_struct->pX, &X_predicted, &V, filter_struct->pP, &P_predicted, &R, &H, &MatDummy, 1);
 
         // kf_structure.X(1:4) = quaternions_correctsign(kf_structure.X(1:4), X(1:4));
-        localization_filter_quaternionscorrectsign(pFilterStruct, &X_predicted);
+        localization_filter_quaternionscorrectsign(filter_struct, &X_predicted);
     }
 
 // %%% corrige usando medidas do GPS:
 // %%% Fun�ao de medi�ao: [zeros(3,4) zeros(3,3) eye(3,3)]*X
-    if(pGPSMeasure->FlagValidVelocityMeasure)
+    if(gps_measure_ptr->FlagValidVelocityMeasure)
     {
         // X = kf_structure.X;
-        PGMATRIX_COPY(&X_predicted, pFilterStruct->pX);
+        PGMATRIX_COPY(&X_predicted, filter_struct->pX);
 
         // P = kf_structure.P;
-        PGMATRIX_COPY(&P_predicted, pFilterStruct->pP);
+        PGMATRIX_COPY(&P_predicted, filter_struct->pP);
         // if kf_structure.flagestimateaccelerometerbias
         //     H = [zeros(3,4) zeros(3,3) eye(3,3) zeros(3,3)];
         // else
         //     H = [zeros(3,4) zeros(3,3) eye(3,3)];
         // end
-        if (pFilterStruct->FlagEstimateAccelerometerBias)
+        if (filter_struct->FlagEstimateAccelerometerBias)
         {
             GMATRIX_SETSIZE(H, 3, 13);
             GMATRIX_ZEROES(H);
@@ -637,28 +637,28 @@ int localization_filter_correction_ekf2(PLOCALIZATIONFILTERSTRUCT pFilterStruct,
         GMATRIX_DATA(H, 3, 10) = 1.0;
         // v = (gpsmeasure.v - H*X);
         PGMATRIX_MULTIPLY_COPY(MatDummy.pMat1, &H, &X_predicted);
-        PGMATRIX_SUBTRACT_COPY(&V, pGPSMeasure->pVelocity, MatDummy.pMat1);
+        PGMATRIX_SUBTRACT_COPY(&V, gps_measure_ptr->pVelocity, MatDummy.pMat1);
 
         // K = P*(H')*inv(H*P*(H') + gpsmeasure.P_v);
         // kf_structure.X = X + K*v;
         // kf_structure.P = (eye(kf_structure.Nstates) - K*H)*P;
-        PGMATRIX_COPY(&R,pGPSMeasure->pPVelocity);
-        kalman_EKF_update_innovationform(pFilterStruct->pX, &X_predicted, &V, pFilterStruct->pP, &P_predicted, &R, &H, &MatDummy, 1);
+        PGMATRIX_COPY(&R,gps_measure_ptr->pPVelocity);
+        kalman_EKF_update_innovationform(filter_struct->pX, &X_predicted, &V, filter_struct->pP, &P_predicted, &R, &H, &MatDummy, 1);
 
         // kf_structure.X(1:4) = quaternions_correctsign(kf_structure.X(1:4), X(1:4));
-        localization_filter_quaternionscorrectsign(pFilterStruct, &X_predicted);
+        localization_filter_quaternionscorrectsign(filter_struct, &X_predicted);
     }
 
 // %%% corrige usando medidas do sonar:
 // %%% Fun�ao de medi�ao: 2z/(q0^2 - q1^2 - q2^2 + q3^2)
 // %%% Fun�ao de medi�ao codificada em estado: X(7)/(X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2);
-    if(pSonarMeasure->FlagValidMeasure)
+    if(sonar_measure_ptr->FlagValidMeasure)
     {
         // X = kf_structure.X;
-        PGMATRIX_COPY(&X_predicted, pFilterStruct->pX);
+        PGMATRIX_COPY(&X_predicted, filter_struct->pX);
 
         // P = kf_structure.P;
-        PGMATRIX_COPY(&P_predicted, pFilterStruct->pP);
+        PGMATRIX_COPY(&P_predicted, filter_struct->pP);
         // dHdX1 = -X(7)*(((X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2))^(-2))*2*X(1);
         // dHdX2 =  X(7)*(((X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2))^(-2))*2*X(2);
         // dHdX3 =  X(7)*(((X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2))^(-2))*2*X(3);
@@ -669,7 +669,7 @@ int localization_filter_correction_ekf2(PLOCALIZATIONFILTERSTRUCT pFilterStruct,
         // else
         //     H = [dHdX1 dHdX2 dHdX3 dHdX4 0 0 dHdX7 0 0 0];
         // end
-        if (pFilterStruct->FlagEstimateAccelerometerBias)
+        if (filter_struct->FlagEstimateAccelerometerBias)
         {
             GMATRIX_SETSIZE(H, 1, 13);
             GMATRIX_ZEROES(H);
@@ -692,27 +692,27 @@ int localization_filter_correction_ekf2(PLOCALIZATIONFILTERSTRUCT pFilterStruct,
 
             // v = (sonarmeasure.range - (X(7)/(X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2)));
             GMATRIX_SETSIZE(V, 1, 1);
-            GMATRIX_DATA(V, 1, 1) = pSonarMeasure->range - GMATRIX_DATA(X_predicted, 7, 1) / aux;
+            GMATRIX_DATA(V, 1, 1) = sonar_measure_ptr->range - GMATRIX_DATA(X_predicted, 7, 1) / aux;
 
             // K = P*(H')*inv(H*P*(H') + sonarmeasure.rangevariance);
             // kf_structure.X = X + K*v;
             // kf_structure.P = (eye(kf_structure.Nstates) - K*H)*P;
             GMATRIX_SETSIZE(R, 1, 1);
-            GMATRIX_DATA(R, 1, 1) = pSonarMeasure->rangevariance;
-            kalman_EKF_update_innovationform(pFilterStruct->pX, &X_predicted, &V, pFilterStruct->pP, &P_predicted, &R, &H, &MatDummy, 1);
+            GMATRIX_DATA(R, 1, 1) = sonar_measure_ptr->rangevariance;
+            kalman_EKF_update_innovationform(filter_struct->pX, &X_predicted, &V, filter_struct->pP, &P_predicted, &R, &H, &MatDummy, 1);
 
             // kf_structure.X(1:4) = quaternions_correctsign(kf_structure.X(1:4), X(1:4));
-            localization_filter_quaternionscorrectsign(pFilterStruct, &X_predicted);
+            localization_filter_quaternionscorrectsign(filter_struct, &X_predicted);
         }
     }
 // %%% corrige a norma do quaternion usando pseudo-medi�oes:
 // %%% Fun�ao de medi�ao: 1 = q0^2 + q1^2 + q2^2 + q3^2
 // %%% Fun�ao de medi�ao codificada em estado: X(1)^2 + X(2)^2 + X(3)^2 + X(4)^2;
     // X = kf_structure.X;
-    PGMATRIX_COPY(&X_predicted, pFilterStruct->pX);
+    PGMATRIX_COPY(&X_predicted, filter_struct->pX);
 
     // P = kf_structure.P;
-    PGMATRIX_COPY(&P_predicted, pFilterStruct->pP);
+    PGMATRIX_COPY(&P_predicted, filter_struct->pP);
     // dHdX1 = 2*X(1);
     // dHdX2 = 2*X(2);
     // dHdX3 = 2*X(3);
@@ -722,7 +722,7 @@ int localization_filter_correction_ekf2(PLOCALIZATIONFILTERSTRUCT pFilterStruct,
     // else
     //     H = [dHdX1 dHdX2 dHdX3 dHdX4 0 0 0 0 0 0];
     // end
-    if (pFilterStruct->FlagEstimateAccelerometerBias)
+    if (filter_struct->FlagEstimateAccelerometerBias)
     {
         GMATRIX_SETSIZE(H, 1, 13);
         GMATRIX_ZEROES(H);
@@ -746,9 +746,9 @@ int localization_filter_correction_ekf2(PLOCALIZATIONFILTERSTRUCT pFilterStruct,
     // kf_structure.X = X + K*v;
     // kf_structure.P = (eye(kf_structure.Nstates) - K*H)*P;
     GMATRIX_SETSIZE(R, 1, 1);
-    PGMATRIX_COPY(&R, pFilterStruct->pR_pseudomeasurementnorm);
-    kalman_EKF_update_innovationform(pFilterStruct->pX, &X_predicted, &V, pFilterStruct->pP, &P_predicted, &R, &H, &MatDummy, 1);
-    localization_filter_quaternionscorrectsign(pFilterStruct, &X_predicted);
+    PGMATRIX_COPY(&R, filter_struct->pR_pseudomeasurementnorm);
+    kalman_EKF_update_innovationform(filter_struct->pX, &X_predicted, &V, filter_struct->pP, &P_predicted, &R, &H, &MatDummy, 1);
+    localization_filter_quaternionscorrectsign(filter_struct, &X_predicted);
 
     // Retorna
     return 1; 
@@ -757,8 +757,8 @@ int localization_filter_correction_ekf2(PLOCALIZATIONFILTERSTRUCT pFilterStruct,
 void localization_converted_measurement_triad_UT_nonbiased(PGMATRIX pY, PGMATRIX pX, PGMATRIX pParameters)
 {
     QUATERNIONS_DECLARE(q_predicted);
-    IMUMEASURE IMUMeasure;
-    MAGNETOMETERMEASURE MagnetometerMeasure;
+    ImuMeasure imu_measure;
+    MagnetometerMeasure magnetometer_measure;
     GMATRIX_DECLARE(M, 3, 1);
     GMATRIX_DECLARE(G, 3, 1);
 
@@ -767,13 +767,13 @@ void localization_converted_measurement_triad_UT_nonbiased(PGMATRIX pY, PGMATRIX
     QUATERNIONS_Q2(q_predicted) = PGMATRIX_DATA(pX, X_q2, 1);
     QUATERNIONS_Q3(q_predicted) = PGMATRIX_DATA(pX, X_q3, 1);
 
-    IMUMeasure.ax = PGMATRIX_DATA(pX, X_vz + 1, 1);
-    IMUMeasure.ay = PGMATRIX_DATA(pX, X_vz + 2, 1);
-    IMUMeasure.az = PGMATRIX_DATA(pX, X_vz + 3, 1);
+    imu_measure.ax = PGMATRIX_DATA(pX, X_vz + 1, 1);
+    imu_measure.ay = PGMATRIX_DATA(pX, X_vz + 2, 1);
+    imu_measure.az = PGMATRIX_DATA(pX, X_vz + 3, 1);
 
-    MagnetometerMeasure.mx = PGMATRIX_DATA(pX, X_vz + 4, 1);
-    MagnetometerMeasure.my = PGMATRIX_DATA(pX, X_vz + 5, 1);
-    MagnetometerMeasure.mz = PGMATRIX_DATA(pX, X_vz + 6, 1);
+    magnetometer_measure.mx = PGMATRIX_DATA(pX, X_vz + 4, 1);
+    magnetometer_measure.my = PGMATRIX_DATA(pX, X_vz + 5, 1);
+    magnetometer_measure.mz = PGMATRIX_DATA(pX, X_vz + 6, 1);
 
     GMATRIX_DATA(M, 1, 1) = PGMATRIX_DATA(pParameters, 1, 1);
     GMATRIX_DATA(M, 2, 1) = PGMATRIX_DATA(pParameters, 2, 1);
@@ -782,14 +782,14 @@ void localization_converted_measurement_triad_UT_nonbiased(PGMATRIX pY, PGMATRIX
     GMATRIX_DATA(G, 2, 1) = PGMATRIX_DATA(pParameters, 5, 1);
     GMATRIX_DATA(G, 3, 1) = PGMATRIX_DATA(pParameters, 6, 1);
 
-    localization_triad(pY, &IMUMeasure, &MagnetometerMeasure, &M, &G, &q_predicted);
+    localization_triad(pY, &imu_measure, &magnetometer_measure, &M, &G, &q_predicted);
 }
 
 void localization_converted_measurement_triad_UT_biased(PGMATRIX pY, PGMATRIX pX, PGMATRIX pParameters)
 {
     QUATERNIONS_DECLARE(q_predicted);
-    IMUMEASURE IMUMeasure;
-    MAGNETOMETERMEASURE MagnetometerMeasure;
+    ImuMeasure imu_measure;
+    MagnetometerMeasure magnetometer_measure;
     GMATRIX_DECLARE(M, 3, 1);
     GMATRIX_DECLARE(G, 3, 1);
 
@@ -798,13 +798,13 @@ void localization_converted_measurement_triad_UT_biased(PGMATRIX pY, PGMATRIX pX
     QUATERNIONS_Q2(q_predicted) = PGMATRIX_DATA(pX, X_q2, 1);
     QUATERNIONS_Q3(q_predicted) = PGMATRIX_DATA(pX, X_q3, 1);
 
-    IMUMeasure.ax = PGMATRIX_DATA(pX, X_baz + 1, 1) - PGMATRIX_DATA(pX, X_bax, 1);
-    IMUMeasure.ay = PGMATRIX_DATA(pX, X_baz + 2, 1) - PGMATRIX_DATA(pX, X_bay, 1);
-    IMUMeasure.az = PGMATRIX_DATA(pX, X_baz + 3, 1) - PGMATRIX_DATA(pX, X_baz, 1);
+    imu_measure.ax = PGMATRIX_DATA(pX, X_baz + 1, 1) - PGMATRIX_DATA(pX, X_bax, 1);
+    imu_measure.ay = PGMATRIX_DATA(pX, X_baz + 2, 1) - PGMATRIX_DATA(pX, X_bay, 1);
+    imu_measure.az = PGMATRIX_DATA(pX, X_baz + 3, 1) - PGMATRIX_DATA(pX, X_baz, 1);
 
-    MagnetometerMeasure.mx = PGMATRIX_DATA(pX, X_baz + 4, 1);
-    MagnetometerMeasure.my = PGMATRIX_DATA(pX, X_baz + 5, 1);
-    MagnetometerMeasure.mz = PGMATRIX_DATA(pX, X_baz + 6, 1);
+    magnetometer_measure.mx = PGMATRIX_DATA(pX, X_baz + 4, 1);
+    magnetometer_measure.my = PGMATRIX_DATA(pX, X_baz + 5, 1);
+    magnetometer_measure.mz = PGMATRIX_DATA(pX, X_baz + 6, 1);
 
     GMATRIX_DATA(M, 1, 1) = PGMATRIX_DATA(pParameters, 1, 1);
     GMATRIX_DATA(M, 2, 1) = PGMATRIX_DATA(pParameters, 2, 1);
@@ -813,10 +813,10 @@ void localization_converted_measurement_triad_UT_biased(PGMATRIX pY, PGMATRIX pX
     GMATRIX_DATA(G, 2, 1) = PGMATRIX_DATA(pParameters, 5, 1);
     GMATRIX_DATA(G, 3, 1) = PGMATRIX_DATA(pParameters, 6, 1);
 
-    localization_triad(pY, &IMUMeasure, &MagnetometerMeasure, &M, &G, &q_predicted);
+    localization_triad(pY, &imu_measure, &magnetometer_measure, &M, &G, &q_predicted);
 }
 
-int localization_converted_measurement_triad(PGMATRIX pYm, PGMATRIX pPy, PGMATRIX pX_predicted, PGMATRIX pP_predicted, PIMUMEASURE pIMUMeasure, PMAGNETOMETERMEASURE pMagnetometerMeasure, PGMATRIX pM, PGMATRIX pG, int FlagEstimateAccelerometerBias)
+int localization_converted_measurement_triad(PGMATRIX pYm, PGMATRIX pPy, PGMATRIX pX_predicted, PGMATRIX pP_predicted, ImuMeasure *imu_measure_ptr, MagnetometerMeasure *magnetometer_measure_ptr, PGMATRIX pM, PGMATRIX pG, int FlagEstimateAccelerometerBias)
 {
     /* Nesse caso, ser� aplicada a unscented transform para o seguinte problema:
             Y = f(Z)
@@ -847,20 +847,20 @@ int localization_converted_measurement_triad(PGMATRIX pYm, PGMATRIX pPy, PGMATRI
     {
         GMATRIX_DATA(XMean, i, 1) = PGMATRIX_DATA(pX_predicted, i, 1);
     }
-    GMATRIX_DATA(XMean, pX_predicted->Nr + 1, 1) = pIMUMeasure->ax;
-    GMATRIX_DATA(XMean, pX_predicted->Nr + 2, 1) = pIMUMeasure->ay;
-    GMATRIX_DATA(XMean, pX_predicted->Nr + 3, 1) = pIMUMeasure->az;
-    GMATRIX_DATA(XMean, pX_predicted->Nr + 4, 1) = pMagnetometerMeasure->mx;
-    GMATRIX_DATA(XMean, pX_predicted->Nr + 5, 1) = pMagnetometerMeasure->my;
-    GMATRIX_DATA(XMean, pX_predicted->Nr + 6, 1) = pMagnetometerMeasure->mz;
+    GMATRIX_DATA(XMean, pX_predicted->Nr + 1, 1) = imu_measure_ptr->ax;
+    GMATRIX_DATA(XMean, pX_predicted->Nr + 2, 1) = imu_measure_ptr->ay;
+    GMATRIX_DATA(XMean, pX_predicted->Nr + 3, 1) = imu_measure_ptr->az;
+    GMATRIX_DATA(XMean, pX_predicted->Nr + 4, 1) = magnetometer_measure_ptr->mx;
+    GMATRIX_DATA(XMean, pX_predicted->Nr + 5, 1) = magnetometer_measure_ptr->my;
+    GMATRIX_DATA(XMean, pX_predicted->Nr + 6, 1) = magnetometer_measure_ptr->mz;
     GMATRIX_ZEROES(XCov);
     PGMATRIX_SUBMATRIX_COPY(&XCov, 1, 1, pP_predicted);
-    GMATRIX_DATA(XCov, pX_predicted->Nr + 1, pX_predicted->Nr + 1) = pIMUMeasure->axvariance;
-    GMATRIX_DATA(XCov, pX_predicted->Nr + 2, pX_predicted->Nr + 2) = pIMUMeasure->ayvariance;
-    GMATRIX_DATA(XCov, pX_predicted->Nr + 3, pX_predicted->Nr + 3) = pIMUMeasure->azvariance;
-    GMATRIX_DATA(XCov, pX_predicted->Nr + 4, pX_predicted->Nr + 4) = pMagnetometerMeasure->mxvariance;
-    GMATRIX_DATA(XCov, pX_predicted->Nr + 5, pX_predicted->Nr + 5) = pMagnetometerMeasure->myvariance;
-    GMATRIX_DATA(XCov, pX_predicted->Nr + 6, pX_predicted->Nr + 6) = pMagnetometerMeasure->mzvariance;
+    GMATRIX_DATA(XCov, pX_predicted->Nr + 1, pX_predicted->Nr + 1) = imu_measure_ptr->axvariance;
+    GMATRIX_DATA(XCov, pX_predicted->Nr + 2, pX_predicted->Nr + 2) = imu_measure_ptr->ayvariance;
+    GMATRIX_DATA(XCov, pX_predicted->Nr + 3, pX_predicted->Nr + 3) = imu_measure_ptr->azvariance;
+    GMATRIX_DATA(XCov, pX_predicted->Nr + 4, pX_predicted->Nr + 4) = magnetometer_measure_ptr->mxvariance;
+    GMATRIX_DATA(XCov, pX_predicted->Nr + 5, pX_predicted->Nr + 5) = magnetometer_measure_ptr->myvariance;
+    GMATRIX_DATA(XCov, pX_predicted->Nr + 6, pX_predicted->Nr + 6) = magnetometer_measure_ptr->mzvariance;
 
     GMATRIX_DATA(Parameters, 1, 1) = PGMATRIX_DATA(pM, 1, 1);
     GMATRIX_DATA(Parameters, 2, 1) = PGMATRIX_DATA(pM, 2, 1);
@@ -887,9 +887,9 @@ int localization_converted_measurement_triad(PGMATRIX pYm, PGMATRIX pPy, PGMATRI
     return 1; 
 }
 
-int localization_converted_measurement_triad_dg_du_imu(PGMATRIX pdg_du_imu, PGMATRIX pX_predicted, PGMATRIX pP_predicted, PIMUMEASURE pIMUMeasure, PMAGNETOMETERMEASURE pMagnetometerMeasure, PGMATRIX pM, PGMATRIX pG, int FlagEstimateAccelerometerBias)
+int localization_converted_measurement_triad_dg_du_imu(PGMATRIX pdg_du_imu, PGMATRIX pX_predicted, PGMATRIX pP_predicted, ImuMeasure *imu_measure_ptr, MagnetometerMeasure *magnetometer_measure_ptr, PGMATRIX pM, PGMATRIX pG, int FlagEstimateAccelerometerBias)
 {
-    IMUMEASURE IMUMeasure;
+    ImuMeasure imu_measure;
     QUATERNIONS_DECLARE(q_predicted);
     QUATERNIONS_DECLARE(y);
     QUATERNIONS_DECLARE(y_ax);
@@ -904,48 +904,48 @@ int localization_converted_measurement_triad_dg_du_imu(PGMATRIX pdg_du_imu, PGMA
     QUATERNIONS_Q3(q_predicted) = PGMATRIX_DATA(pX_predicted, X_q3, 1);
 
     // Considera polariza��o dos aceler�metros
-    IMUMeasure.wx = pIMUMeasure->wx;
-    IMUMeasure.wy = pIMUMeasure->wy;
-    IMUMeasure.wz = pIMUMeasure->wz;
+    imu_measure.wx = imu_measure_ptr->wx;
+    imu_measure.wy = imu_measure_ptr->wy;
+    imu_measure.wz = imu_measure_ptr->wz;
     if (FlagEstimateAccelerometerBias)
     {
-        IMUMeasure.ax = pIMUMeasure->ax - PGMATRIX_DATA(pX_predicted, X_bax, 1);
-        IMUMeasure.ay = pIMUMeasure->ay - PGMATRIX_DATA(pX_predicted, X_bay, 1);
-        IMUMeasure.az = pIMUMeasure->az - PGMATRIX_DATA(pX_predicted, X_baz, 1);
+        imu_measure.ax = imu_measure_ptr->ax - PGMATRIX_DATA(pX_predicted, X_bax, 1);
+        imu_measure.ay = imu_measure_ptr->ay - PGMATRIX_DATA(pX_predicted, X_bay, 1);
+        imu_measure.az = imu_measure_ptr->az - PGMATRIX_DATA(pX_predicted, X_baz, 1);
     }
     else
     {
-        IMUMeasure.ax = pIMUMeasure->ax;
-        IMUMeasure.ay = pIMUMeasure->ay;
-        IMUMeasure.az = pIMUMeasure->az;
+        imu_measure.ax = imu_measure_ptr->ax;
+        imu_measure.ay = imu_measure_ptr->ay;
+        imu_measure.az = imu_measure_ptr->az;
     }
 
     // M�todo aproximado de calculo de dg_du_imu para o caso da triad
     delta = 1e-5;
 
     // y = localization_triad(imumeasure, magnetometermeasure, M, G, q_predicted);
-    localization_triad(&y, &IMUMeasure, pMagnetometerMeasure, pM, pG, &q_predicted);
+    localization_triad(&y, &imu_measure, magnetometer_measure_ptr, pM, pG, &q_predicted);
 
     // imumeasure.ax = imumeasure.ax + delta;
     // y_ax = localization_triad(imumeasure, magnetometermeasure, M, G, q_predicted);
     // imumeasure.ax = imumeasure.ax - delta;
-    IMUMeasure.ax += delta;
-    localization_triad(&y_ax, &IMUMeasure, pMagnetometerMeasure, pM, pG, &q_predicted);
-    IMUMeasure.ax -= delta;
+    imu_measure.ax += delta;
+    localization_triad(&y_ax, &imu_measure, magnetometer_measure_ptr, pM, pG, &q_predicted);
+    imu_measure.ax -= delta;
 
     // imumeasure.ay = imumeasure.ay + delta;
     // y_ay = localization_triad(imumeasure, magnetometermeasure, M, G, q_predicted);
     // imumeasure.ay = imumeasure.ay - delta;
-    IMUMeasure.ay += delta;
-    localization_triad(&y_ay, &IMUMeasure, pMagnetometerMeasure, pM, pG, &q_predicted);
-    IMUMeasure.ay -= delta;
+    imu_measure.ay += delta;
+    localization_triad(&y_ay, &imu_measure, magnetometer_measure_ptr, pM, pG, &q_predicted);
+    imu_measure.ay -= delta;
 
     // imumeasure.az = imumeasure.az + delta;
     // y_az = localization_triad(imumeasure, magnetometermeasure, M, G, q_predicted);
     // imumeasure.az = imumeasure.az - delta;
-    IMUMeasure.az += delta;
-    localization_triad(&y_az, &IMUMeasure, pMagnetometerMeasure, pM, pG, &q_predicted);
-    IMUMeasure.az -= delta;
+    imu_measure.az += delta;
+    localization_triad(&y_az, &imu_measure, magnetometer_measure_ptr, pM, pG, &q_predicted);
+    imu_measure.az -= delta;
     
     // dg_du_imu = [(y_ax-y)/delta (y_ay-y)/delta (y_az-y)/delta zeros(4,3)];
     PGMATRIX_SETSIZE(pdg_du_imu, 4, 6);
@@ -966,19 +966,19 @@ int localization_converted_measurement_triad_dg_du_imu(PGMATRIX pdg_du_imu, PGMA
     return 1;
 }
 
-int localization_filter_prediction(PLOCALIZATIONFILTERSTRUCT pFilterStruct, PIMUMEASURE pIMUMeasure, PGMATRIX pG, double T)
+int localization_filter_prediction(LocalizationFilter *filter_struct, ImuMeasure *imu_measure_ptr, PGMATRIX pG, double T)
 {
     // Predi��o conforme a arquitetura
-    switch(pFilterStruct->AlgorithmCode)
+    switch(filter_struct->AlgorithmCode)
     {
         case LOCALIZATION_ALGORITHMCODE_EKF2:
-            if(!localization_filter_prediction_ekf2(pFilterStruct, pIMUMeasure, pG, T)) return 0;
+            if(!localization_filter_prediction_ekf2(filter_struct, imu_measure_ptr, pG, T)) return 0;
             break;
         case LOCALIZATION_ALGORITHMCODE_EKF_DECOUPLED:
-            if(!localization_filter_prediction_ekf_decoupled(pFilterStruct, pIMUMeasure, pG, T)) return 0;
+            if(!localization_filter_prediction_ekf_decoupled(filter_struct, imu_measure_ptr, pG, T)) return 0;
             break;
         case LOCALIZATION_ALGORITHMCODE_CEKF:
-            if(!localization_filter_prediction_cekf(pFilterStruct, pIMUMeasure, pG, T)) return 0;
+            if(!localization_filter_prediction_cekf(filter_struct, imu_measure_ptr, pG, T)) return 0;
             break;
         default:
             return 0;
@@ -995,7 +995,7 @@ int localization_filter_prediction(PLOCALIZATIONFILTERSTRUCT pFilterStruct, PIMU
     return 1; 
 }                      
 
-int localization_filter_prediction_cekf(PLOCALIZATIONFILTERSTRUCT pFilterStruct, PIMUMEASURE pIMUMeasure, PGMATRIX pG, double T)
+int localization_filter_prediction_cekf(LocalizationFilter *filter_struct, ImuMeasure *imu_measure_ptr, PGMATRIX pG, double T)
 {
     GMATRIX_DECLARE(X_previous, LOCALIZATION_MAXSTATESIZE, 1);
     GMATRIX_DECLARE(P_previous, LOCALIZATION_MAXSTATESIZE, LOCALIZATION_MAXSTATESIZE);
@@ -1009,71 +1009,71 @@ int localization_filter_prediction_cekf(PLOCALIZATIONFILTERSTRUCT pFilterStruct,
     GMATRIX_DECLARE(MatDummy1, LOCALIZATION_MAXSTATESIZE, LOCALIZATION_MAXSTATESIZE);
     GMATRIX_DECLARE(MatDummy2, LOCALIZATION_MAXSTATESIZE, LOCALIZATION_MAXSTATESIZE);
 
-    /*pFilterStruct->pS_previous_cekf = PGMATRIX_ALLOC(pFilterStruct->Nstates,4);
-        PGMATRIX_ZEROES(pFilterStruct->pS_previous_cekf);
-        pFilterStruct->pR_previous_cekf = PGMATRIX_ALLOC(4,4);
-        PGMATRIX_IDENTITY(pFilterStruct->pR_previous_cekf);
-        pFilterStruct->pA_imu_P_imu_cekf = PGMATRIX_ALLOC(pFilterStruct->Nstates,6);
-        PGMATRIX_ZEROES(pFilterStruct->pA_imu_P_imu_cekf);
-        pFilterStruct->pinnovation_previous_cekf = PGMATRIX_ALLOC(4,1);
-        PGMATRIX_ZEROES(pFilterStruct->pinnovation_previous_cekf);*/
+    /*filter_struct->pS_previous_cekf = PGMATRIX_ALLOC(filter_struct->Nstates,4);
+        PGMATRIX_ZEROES(filter_struct->pS_previous_cekf);
+        filter_struct->pR_previous_cekf = PGMATRIX_ALLOC(4,4);
+        PGMATRIX_IDENTITY(filter_struct->pR_previous_cekf);
+        filter_struct->pA_imu_P_imu_cekf = PGMATRIX_ALLOC(filter_struct->Nstates,6);
+        PGMATRIX_ZEROES(filter_struct->pA_imu_P_imu_cekf);
+        filter_struct->pinnovation_previous_cekf = PGMATRIX_ALLOC(4,1);
+        PGMATRIX_ZEROES(filter_struct->pinnovation_previous_cekf);*/
 
     // Defini��o dos tamanhos das matrizes deve ser feito aqui, o que evita aloca��o dim�mica
-    GMATRIX_SETSIZE(X_previous, pFilterStruct->Nstates, 1);
-    GMATRIX_SETSIZE(P_previous, pFilterStruct->Nstates, pFilterStruct->Nstates);
-    GMATRIX_SETSIZE(df_dx, pFilterStruct->Nstates, pFilterStruct->Nstates);
-    GMATRIX_SETSIZE(df_du, pFilterStruct->Nstates, 6);
-    GMATRIX_SETSIZE(K_previous, pFilterStruct->Nstates, 4);
-    GMATRIX_SETSIZE(Qtilde, pFilterStruct->Nstates, pFilterStruct->Nstates);
+    GMATRIX_SETSIZE(X_previous, filter_struct->Nstates, 1);
+    GMATRIX_SETSIZE(P_previous, filter_struct->Nstates, filter_struct->Nstates);
+    GMATRIX_SETSIZE(df_dx, filter_struct->Nstates, filter_struct->Nstates);
+    GMATRIX_SETSIZE(df_du, filter_struct->Nstates, 6);
+    GMATRIX_SETSIZE(K_previous, filter_struct->Nstates, 4);
+    GMATRIX_SETSIZE(Qtilde, filter_struct->Nstates, filter_struct->Nstates);
 
     // X_previous = kf_structure.X;
-    PGMATRIX_COPY(&X_previous, pFilterStruct->pX);
+    PGMATRIX_COPY(&X_previous, filter_struct->pX);
 
     // P_previous = kf_structure.P;
-    PGMATRIX_COPY(&P_previous, pFilterStruct->pP);
+    PGMATRIX_COPY(&P_previous, filter_struct->pP);
 
     // u_imu = [imumeasure.ax; imumeasure.ay; imumeasure.az; imumeasure.wx; imumeasure.wy; imumeasure.wz];
-    GMATRIX_DATA(u_imu, 1, 1) = pIMUMeasure->ax;
-    GMATRIX_DATA(u_imu, 2, 1) = pIMUMeasure->ay;
-    GMATRIX_DATA(u_imu, 3, 1) = pIMUMeasure->az;
-    GMATRIX_DATA(u_imu, 4, 1) = pIMUMeasure->wx;
-    GMATRIX_DATA(u_imu, 5, 1) = pIMUMeasure->wy;
-    GMATRIX_DATA(u_imu, 6, 1) = pIMUMeasure->wz;
+    GMATRIX_DATA(u_imu, 1, 1) = imu_measure_ptr->ax;
+    GMATRIX_DATA(u_imu, 2, 1) = imu_measure_ptr->ay;
+    GMATRIX_DATA(u_imu, 3, 1) = imu_measure_ptr->az;
+    GMATRIX_DATA(u_imu, 4, 1) = imu_measure_ptr->wx;
+    GMATRIX_DATA(u_imu, 5, 1) = imu_measure_ptr->wy;
+    GMATRIX_DATA(u_imu, 6, 1) = imu_measure_ptr->wz;
 
     // Pu_imu = diag([imumeasure.axvariance; imumeasure.ayvariance; imumeasure.azvariance; imumeasure.wxvariance; imumeasure.wyvariance; imumeasure.wzvariance]);
     GMATRIX_ZEROES(P_u_imu);
-    GMATRIX_DATA(P_u_imu, 1, 1) = pIMUMeasure->axvariance;
-    GMATRIX_DATA(P_u_imu, 2, 2) = pIMUMeasure->ayvariance;
-    GMATRIX_DATA(P_u_imu, 3, 3) = pIMUMeasure->azvariance;
-    GMATRIX_DATA(P_u_imu, 4, 4) = pIMUMeasure->wxvariance;
-    GMATRIX_DATA(P_u_imu, 5, 5) = pIMUMeasure->wyvariance;
-    GMATRIX_DATA(P_u_imu, 6, 6) = pIMUMeasure->wzvariance;
+    GMATRIX_DATA(P_u_imu, 1, 1) = imu_measure_ptr->axvariance;
+    GMATRIX_DATA(P_u_imu, 2, 2) = imu_measure_ptr->ayvariance;
+    GMATRIX_DATA(P_u_imu, 3, 3) = imu_measure_ptr->azvariance;
+    GMATRIX_DATA(P_u_imu, 4, 4) = imu_measure_ptr->wxvariance;
+    GMATRIX_DATA(P_u_imu, 5, 5) = imu_measure_ptr->wyvariance;
+    GMATRIX_DATA(P_u_imu, 6, 6) = imu_measure_ptr->wzvariance;
 
     // K_previous = kf_structure.S_previous_cekf * inv(kf_structure.R_previous_cekf);
-    PGMATRIX_INVERSE_COPY(&MatDummy1, pFilterStruct->pR_previous_cekf);
-    PGMATRIX_MULTIPLY_COPY(&K_previous, pFilterStruct->pS_previous_cekf, &MatDummy1);
+    PGMATRIX_INVERSE_COPY(&MatDummy1, filter_struct->pR_previous_cekf);
+    PGMATRIX_MULTIPLY_COPY(&K_previous, filter_struct->pS_previous_cekf, &MatDummy1);
 
 
     // kf_structure.X = localization_filter_model_f('evaluate',x_previous,u_imu,G,T,kf_structure.flagestimateaccelerometerbias) + K_previous*kf_structure.innovation_previous_cekf;
-    localization_filter_process_model_evaluate(pFilterStruct->pX, &X_previous, &u_imu, pG, T, pFilterStruct->FlagEstimateAccelerometerBias);
-    PGMATRIX_MULTIPLY_ADD(pFilterStruct->pX, &K_previous, pFilterStruct->pinnovation_previous_cekf);
+    localization_filter_process_model_evaluate(filter_struct->pX, &X_previous, &u_imu, pG, T, filter_struct->FlagEstimateAccelerometerBias);
+    PGMATRIX_MULTIPLY_ADD(filter_struct->pX, &K_previous, filter_struct->pinnovation_previous_cekf);
 
     // df_dx = localization_filter_model_f('df_dx',X_previous,u_imu,G,T,kf_structure.flagestimateaccelerometerbias);
-    localization_filter_process_model_df_dx(&df_dx, &X_previous, &u_imu, pG, T, pFilterStruct->FlagEstimateAccelerometerBias);
+    localization_filter_process_model_df_dx(&df_dx, &X_previous, &u_imu, pG, T, filter_struct->FlagEstimateAccelerometerBias);
 
     // df_du = localization_filter_model_f('df_du',X_previous,u_imu,G,T,kf_structure.flagestimateaccelerometerbias);
-    localization_filter_process_model_df_du(&df_du, &X_previous, &u_imu, pG, T, pFilterStruct->FlagEstimateAccelerometerBias);
+    localization_filter_process_model_df_du(&df_du, &X_previous, &u_imu, pG, T, filter_struct->FlagEstimateAccelerometerBias);
 
     // Qtilde = kf_structure.Q_cekf + df_du_imu*P_u_imu*df_du_imu';
     PGMATRIX_TRIPLEMULTIPLY_COPY_EXTENDED(&Qtilde, &df_du, 0, &P_u_imu, 0, &df_du, 1, &MatDummy1);
-    PGMATRIX_ADD(&Qtilde, pFilterStruct->pQ);
+    PGMATRIX_ADD(&Qtilde, filter_struct->pQ);
 
     // if kf_structure.flagestimateaccelerometerbias
     //     H = [eye(4) zeros(4,9)];
     // else
     //     H = [eye(4) zeros(4,6)];
     // end
-    if (pFilterStruct->FlagEstimateAccelerometerBias)
+    if (filter_struct->FlagEstimateAccelerometerBias)
     {
         GMATRIX_SETSIZE(H, 4, 13);
         GMATRIX_ZEROES(H);
@@ -1089,21 +1089,21 @@ int localization_filter_prediction_cekf(PLOCALIZATIONFILTERSTRUCT pFilterStruct,
     GMATRIX_DATA(H, 4, 4) = 1.0;
 
     // kf_structure.P = (df_dx-K_previous*H)*P_previous*(df_dx-K_previous*H)' + Qtilde - K_previous*kf_structure.R_previous_cekf*K_previous';
-    PGMATRIX_TRIPLEMULTIPLY_COPY_EXTENDED(pFilterStruct->pP, &K_previous, 0, pFilterStruct->pR_previous_cekf, 0, &K_previous, 1, &MatDummy1);
-    PGMATRIX_MULTIPLY_CONST(pFilterStruct->pP, -1.0); // kf_structure.P = - K_previous*kf_structure.R_previous_cekf*K_previous';
-    PGMATRIX_ADD(pFilterStruct->pP, &Qtilde); // kf_structure.P = Qtilde - K_previous*kf_structure.R_previous_cekf*K_previous';
+    PGMATRIX_TRIPLEMULTIPLY_COPY_EXTENDED(filter_struct->pP, &K_previous, 0, filter_struct->pR_previous_cekf, 0, &K_previous, 1, &MatDummy1);
+    PGMATRIX_MULTIPLY_CONST(filter_struct->pP, -1.0); // kf_structure.P = - K_previous*kf_structure.R_previous_cekf*K_previous';
+    PGMATRIX_ADD(filter_struct->pP, &Qtilde); // kf_structure.P = Qtilde - K_previous*kf_structure.R_previous_cekf*K_previous';
     PGMATRIX_MULTIPLY_COPY(&MatDummy1, &K_previous, &H);
     PGMATRIX_SUBTRACT_COPY(&MatDummy2, &df_dx, &MatDummy1); // MatDummy2 = df_dx-K_previous*H
-    PGMATRIX_TRIPLEMULTIPLY_ADD_EXTENDED(pFilterStruct->pP, &MatDummy2, 0, &P_previous, 0, &MatDummy2, 1, &MatDummy1);
+    PGMATRIX_TRIPLEMULTIPLY_ADD_EXTENDED(filter_struct->pP, &MatDummy2, 0, &P_previous, 0, &MatDummy2, 1, &MatDummy1);
 
     // kf_structure.A_imu_P_imu_cekf = df_du_imu*P_u_imu;
-    PGMATRIX_MULTIPLY_COPY(pFilterStruct->pA_imu_P_imu_cekf, &df_du, &P_u_imu);
+    PGMATRIX_MULTIPLY_COPY(filter_struct->pA_imu_P_imu_cekf, &df_du, &P_u_imu);
 
     // Retorna
     return 1; 
 }  
 
-int localization_filter_prediction_ekf2(PLOCALIZATIONFILTERSTRUCT pFilterStruct, PIMUMEASURE pIMUMeasure, PGMATRIX pG, double T)
+int localization_filter_prediction_ekf2(LocalizationFilter *filter_struct, ImuMeasure *imu_measure_ptr, PGMATRIX pG, double T)
 {
     GMATRIX_DECLARE(X_previous, LOCALIZATION_MAXSTATESIZE, 1);
     GMATRIX_DECLARE(P_previous, LOCALIZATION_MAXSTATESIZE, LOCALIZATION_MAXSTATESIZE);
@@ -1114,53 +1114,53 @@ int localization_filter_prediction_ekf2(PLOCALIZATIONFILTERSTRUCT pFilterStruct,
     GMATRIX_DECLARE(MatDummy, LOCALIZATION_MAXSTATESIZE, LOCALIZATION_MAXSTATESIZE);
 
     // Defini��o dos tamanhos das matrizes deve ser feito aqui, o que evita aloca��o dim�mica
-    GMATRIX_SETSIZE(X_previous,pFilterStruct->Nstates, 1);
-    GMATRIX_SETSIZE(P_previous, pFilterStruct->Nstates, pFilterStruct->Nstates);
-    GMATRIX_SETSIZE(df_dx, pFilterStruct->Nstates, pFilterStruct->Nstates);
-    GMATRIX_SETSIZE(df_du, pFilterStruct->Nstates, 6);
+    GMATRIX_SETSIZE(X_previous,filter_struct->Nstates, 1);
+    GMATRIX_SETSIZE(P_previous, filter_struct->Nstates, filter_struct->Nstates);
+    GMATRIX_SETSIZE(df_dx, filter_struct->Nstates, filter_struct->Nstates);
+    GMATRIX_SETSIZE(df_du, filter_struct->Nstates, 6);
 
     // X_previous = kf_structure.X;
-    PGMATRIX_COPY(&X_previous, pFilterStruct->pX);
+    PGMATRIX_COPY(&X_previous, filter_struct->pX);
 
     // P_previous = kf_structure.P;
-    PGMATRIX_COPY(&P_previous, pFilterStruct->pP);
+    PGMATRIX_COPY(&P_previous, filter_struct->pP);
 
     // u_imu = [imumeasure.ax; imumeasure.ay; imumeasure.az; imumeasure.wx; imumeasure.wy; imumeasure.wz];
-    GMATRIX_DATA(u_imu, 1, 1) = pIMUMeasure->ax;
-    GMATRIX_DATA(u_imu, 2, 1) = pIMUMeasure->ay;
-    GMATRIX_DATA(u_imu, 3, 1) = pIMUMeasure->az;
-    GMATRIX_DATA(u_imu, 4, 1) = pIMUMeasure->wx;
-    GMATRIX_DATA(u_imu, 5, 1) = pIMUMeasure->wy;
-    GMATRIX_DATA(u_imu, 6, 1) = pIMUMeasure->wz;
+    GMATRIX_DATA(u_imu, 1, 1) = imu_measure_ptr->ax;
+    GMATRIX_DATA(u_imu, 2, 1) = imu_measure_ptr->ay;
+    GMATRIX_DATA(u_imu, 3, 1) = imu_measure_ptr->az;
+    GMATRIX_DATA(u_imu, 4, 1) = imu_measure_ptr->wx;
+    GMATRIX_DATA(u_imu, 5, 1) = imu_measure_ptr->wy;
+    GMATRIX_DATA(u_imu, 6, 1) = imu_measure_ptr->wz;
 
     // Pu_imu = diag([imumeasure.axvariance; imumeasure.ayvariance; imumeasure.azvariance; imumeasure.wxvariance; imumeasure.wyvariance; imumeasure.wzvariance]);
     GMATRIX_ZEROES(P_u_imu);
-    GMATRIX_DATA(P_u_imu, 1, 1) = pIMUMeasure->axvariance;
-    GMATRIX_DATA(P_u_imu, 2, 2) = pIMUMeasure->ayvariance;
-    GMATRIX_DATA(P_u_imu, 3, 3) = pIMUMeasure->azvariance;
-    GMATRIX_DATA(P_u_imu, 4, 4) = pIMUMeasure->wxvariance;
-    GMATRIX_DATA(P_u_imu, 5, 5) = pIMUMeasure->wyvariance;
-    GMATRIX_DATA(P_u_imu, 6, 6) = pIMUMeasure->wzvariance;
+    GMATRIX_DATA(P_u_imu, 1, 1) = imu_measure_ptr->axvariance;
+    GMATRIX_DATA(P_u_imu, 2, 2) = imu_measure_ptr->ayvariance;
+    GMATRIX_DATA(P_u_imu, 3, 3) = imu_measure_ptr->azvariance;
+    GMATRIX_DATA(P_u_imu, 4, 4) = imu_measure_ptr->wxvariance;
+    GMATRIX_DATA(P_u_imu, 5, 5) = imu_measure_ptr->wyvariance;
+    GMATRIX_DATA(P_u_imu, 6, 6) = imu_measure_ptr->wzvariance;
 
     // kf_structure.X = localization_filter_model_f('evaluate',X_previous,u_imu,G,T,kf_structure.flagestimateaccelerometerbias);
-    localization_filter_process_model_evaluate(pFilterStruct->pX, &X_previous, &u_imu, pG, T, pFilterStruct->FlagEstimateAccelerometerBias);
+    localization_filter_process_model_evaluate(filter_struct->pX, &X_previous, &u_imu, pG, T, filter_struct->FlagEstimateAccelerometerBias);
 
     // df_dx = localization_filter_model_f('df_dx',X_previous,u_imu,G,T,kf_structure.flagestimateaccelerometerbias);
-    localization_filter_process_model_df_dx(&df_dx, &X_previous, &u_imu, pG, T, pFilterStruct->FlagEstimateAccelerometerBias);
+    localization_filter_process_model_df_dx(&df_dx, &X_previous, &u_imu, pG, T, filter_struct->FlagEstimateAccelerometerBias);
 
     // df_du = localization_filter_model_f('df_du',X_previous,u_imu,G,T,kf_structure.flagestimateaccelerometerbias);
-    localization_filter_process_model_df_du(&df_du, &X_previous, &u_imu, pG, T, pFilterStruct->FlagEstimateAccelerometerBias);
+    localization_filter_process_model_df_du(&df_du, &X_previous, &u_imu, pG, T, filter_struct->FlagEstimateAccelerometerBias);
 
     // kf_structure.P = df_dx*P_previous*df_dx' + df_du*P_u_imu*df_du' + kf_structure.Q_ekf;
-    PGMATRIX_TRIPLEMULTIPLY_COPY_EXTENDED(pFilterStruct->pP, &df_dx, 0, &P_previous, 0, &df_dx, 1, &MatDummy);
-    PGMATRIX_TRIPLEMULTIPLY_ADD_EXTENDED(pFilterStruct->pP, &df_du, 0, &P_u_imu, 0, &df_du, 1, &MatDummy);
-    PGMATRIX_ADD(pFilterStruct->pP, pFilterStruct->pQ);
+    PGMATRIX_TRIPLEMULTIPLY_COPY_EXTENDED(filter_struct->pP, &df_dx, 0, &P_previous, 0, &df_dx, 1, &MatDummy);
+    PGMATRIX_TRIPLEMULTIPLY_ADD_EXTENDED(filter_struct->pP, &df_du, 0, &P_u_imu, 0, &df_du, 1, &MatDummy);
+    PGMATRIX_ADD(filter_struct->pP, filter_struct->pQ);
 
     // Retorna
     return 1; 
 }                      
 
-int localization_filter_prediction_ekf_decoupled(PLOCALIZATIONFILTERSTRUCT pFilterStruct, PIMUMEASURE pIMUMeasure, PGMATRIX pG, double T)
+int localization_filter_prediction_ekf_decoupled(LocalizationFilter *filter_struct, ImuMeasure *imu_measure_ptr, PGMATRIX pG, double T)
 {
     GMATRIX_DECLARE(X_previous, LOCALIZATION_MAXSTATESIZE, 1);
     GMATRIX_DECLARE(P_previous, LOCALIZATION_MAXSTATESIZE, LOCALIZATION_MAXSTATESIZE);
@@ -1170,51 +1170,51 @@ int localization_filter_prediction_ekf_decoupled(PLOCALIZATIONFILTERSTRUCT pFilt
     GMATRIX_DECLARE(df_du, LOCALIZATION_MAXSTATESIZE, 6);
     GMATRIX_DECLARE(MatDummy, LOCALIZATION_MAXSTATESIZE, LOCALIZATION_MAXSTATESIZE);
 
-    GMATRIX_SETSIZE(X_previous, pFilterStruct->Nstates, 1);
-    GMATRIX_SETSIZE(P_previous, pFilterStruct->Nstates, pFilterStruct->Nstates);
-    GMATRIX_SETSIZE(df_dx, pFilterStruct->Nstates, pFilterStruct->Nstates);
-    GMATRIX_SETSIZE(df_du, pFilterStruct->Nstates, 6);
+    GMATRIX_SETSIZE(X_previous, filter_struct->Nstates, 1);
+    GMATRIX_SETSIZE(P_previous, filter_struct->Nstates, filter_struct->Nstates);
+    GMATRIX_SETSIZE(df_dx, filter_struct->Nstates, filter_struct->Nstates);
+    GMATRIX_SETSIZE(df_du, filter_struct->Nstates, 6);
 
-    PGMATRIX_COPY(&X_previous, pFilterStruct->pX);
+    PGMATRIX_COPY(&X_previous, filter_struct->pX);
 
-    PGMATRIX_COPY(&P_previous, pFilterStruct->pP);
+    PGMATRIX_COPY(&P_previous, filter_struct->pP);
 
     // u_imu = [imumeasure.ax; imumeasure.ay; imumeasure.az; imumeasure.wx; imumeasure.wy; imumeasure.wz];
-    GMATRIX_DATA(u_imu,1,1) = pIMUMeasure->ax;
-    GMATRIX_DATA(u_imu,2,1) = pIMUMeasure->ay;
-    GMATRIX_DATA(u_imu,3,1) = pIMUMeasure->az;
-    GMATRIX_DATA(u_imu,4,1) = pIMUMeasure->wx;
-    GMATRIX_DATA(u_imu,5,1) = pIMUMeasure->wy;
-    GMATRIX_DATA(u_imu,6,1) = pIMUMeasure->wz;
+    GMATRIX_DATA(u_imu,1,1) = imu_measure_ptr->ax;
+    GMATRIX_DATA(u_imu,2,1) = imu_measure_ptr->ay;
+    GMATRIX_DATA(u_imu,3,1) = imu_measure_ptr->az;
+    GMATRIX_DATA(u_imu,4,1) = imu_measure_ptr->wx;
+    GMATRIX_DATA(u_imu,5,1) = imu_measure_ptr->wy;
+    GMATRIX_DATA(u_imu,6,1) = imu_measure_ptr->wz;
 
     // Pu_imu = diag([imumeasure.axvariance; imumeasure.ayvariance; imumeasure.azvariance; imumeasure.wxvariance; imumeasure.wyvariance; imumeasure.wzvariance]);
     GMATRIX_ZEROES(P_u_imu);
-    GMATRIX_DATA(P_u_imu,1,1) = pIMUMeasure->axvariance;
-    GMATRIX_DATA(P_u_imu,2,2) = pIMUMeasure->ayvariance;
-    GMATRIX_DATA(P_u_imu,3,3) = pIMUMeasure->azvariance;
-    GMATRIX_DATA(P_u_imu,4,4) = pIMUMeasure->wxvariance;
-    GMATRIX_DATA(P_u_imu,5,5) = pIMUMeasure->wyvariance;
-    GMATRIX_DATA(P_u_imu,6,6) = pIMUMeasure->wzvariance;
+    GMATRIX_DATA(P_u_imu,1,1) = imu_measure_ptr->axvariance;
+    GMATRIX_DATA(P_u_imu,2,2) = imu_measure_ptr->ayvariance;
+    GMATRIX_DATA(P_u_imu,3,3) = imu_measure_ptr->azvariance;
+    GMATRIX_DATA(P_u_imu,4,4) = imu_measure_ptr->wxvariance;
+    GMATRIX_DATA(P_u_imu,5,5) = imu_measure_ptr->wyvariance;
+    GMATRIX_DATA(P_u_imu,6,6) = imu_measure_ptr->wzvariance;
 
     // kf_structure.X = localization_filter_model_f('evaluate',X_previous,u_imu,G,T,kf_structure.flagestimateaccelerometerbias);
-    localization_filter_process_model_evaluate(pFilterStruct->pX, &X_previous, &u_imu, pG, T, pFilterStruct->FlagEstimateAccelerometerBias);
+    localization_filter_process_model_evaluate(filter_struct->pX, &X_previous, &u_imu, pG, T, filter_struct->FlagEstimateAccelerometerBias);
 
     // df_dx = localization_filter_model_f('df_dx',X_previous,u_imu,G,T,kf_structure.flagestimateaccelerometerbias);
-    localization_filter_process_model_df_dx(&df_dx, &X_previous, &u_imu, pG, T, pFilterStruct->FlagEstimateAccelerometerBias);
+    localization_filter_process_model_df_dx(&df_dx, &X_previous, &u_imu, pG, T, filter_struct->FlagEstimateAccelerometerBias);
 
     // df_du = localization_filter_model_f('df_du',X_previous,u_imu,G,T,kf_structure.flagestimateaccelerometerbias);
-    localization_filter_process_model_df_du(&df_du, &X_previous, &u_imu, pG, T, pFilterStruct->FlagEstimateAccelerometerBias);
+    localization_filter_process_model_df_du(&df_du, &X_previous, &u_imu, pG, T, filter_struct->FlagEstimateAccelerometerBias);
 
     // kf_structure.P = df_dx*P_previous*df_dx' + df_du*P_u_imu*df_du' + kf_structure.Q_ekf;
-    PGMATRIX_TRIPLEMULTIPLY_COPY_EXTENDED(pFilterStruct->pP, &df_dx, 0, &P_previous, 0, &df_dx, 1, &MatDummy);
-    PGMATRIX_TRIPLEMULTIPLY_ADD_EXTENDED(pFilterStruct->pP, &df_du, 0, &P_u_imu, 0, &df_du, 1, &MatDummy);
-    PGMATRIX_ADD(pFilterStruct->pP, pFilterStruct->pQ);
+    PGMATRIX_TRIPLEMULTIPLY_COPY_EXTENDED(filter_struct->pP, &df_dx, 0, &P_previous, 0, &df_dx, 1, &MatDummy);
+    PGMATRIX_TRIPLEMULTIPLY_ADD_EXTENDED(filter_struct->pP, &df_du, 0, &P_u_imu, 0, &df_du, 1, &MatDummy);
+    PGMATRIX_ADD(filter_struct->pP, filter_struct->pQ);
 
     // Retorna
     return 1;
 }
 
-int localization_filter_correction_ekf_decoupled(PLOCALIZATIONFILTERSTRUCT pFilterStruct, PGPSMEASURE pGPSMeasure, PIMUMEASURE pIMUMeasure, PMAGNETOMETERMEASURE pMagnetometerMeasure, PSONARMEASURE pSonarMeasure, PGMATRIX pM, PGMATRIX pG, double T)
+int localization_filter_correction_ekf_decoupled(LocalizationFilter *filter_struct, GpsMeasure *gps_measure_ptr, ImuMeasure *imu_measure_ptr, MagnetometerMeasure *magnetometer_measure_ptr, SonarMeasure *sonar_measure_ptr, PGMATRIX pM, PGMATRIX pG, double T)
 {
     GMATRIX_DECLARE(X_predicted, LOCALIZATION_MAXSTATESIZE, 1);
     GMATRIX_DECLARE(P_predicted, LOCALIZATION_MAXSTATESIZE, LOCALIZATION_MAXSTATESIZE);
@@ -1230,8 +1230,8 @@ int localization_filter_correction_ekf_decoupled(PLOCALIZATIONFILTERSTRUCT pFilt
     GMATRIX_DECLARE(magnetometer_measurement, 3, 1);
     GMATRIX_DECLARE(accelerometer_measurement, 3, 1);
 
-    GMATRIX_SETSIZE(X_predicted, pFilterStruct->Nstates, 1);
-    GMATRIX_SETSIZE(P_predicted, pFilterStruct->Nstates, pFilterStruct->Nstates);
+    GMATRIX_SETSIZE(X_predicted, filter_struct->Nstates, 1);
+    GMATRIX_SETSIZE(P_predicted, filter_struct->Nstates, filter_struct->Nstates);
 
     GMATRIX_DECLARE(MatDummy1, LOCALIZATION_MAXSTATESIZE, LOCALIZATION_MAXSTATESIZE);
     GMATRIX_DECLARE(MatDummy2, LOCALIZATION_MAXSTATESIZE, LOCALIZATION_MAXSTATESIZE);
@@ -1267,7 +1267,7 @@ int localization_filter_correction_ekf_decoupled(PLOCALIZATIONFILTERSTRUCT pFilt
     if(accelerometer_filtered == 0.0)
     {
         // remove the pow function
-        accelerometer_filtered = sqrt(pow(pIMUMeasure->ax, 2) + pow(pIMUMeasure->ay, 2) + pow(pIMUMeasure->az, 2));
+        accelerometer_filtered = sqrt(pow(imu_measure_ptr->ax, 2) + pow(imu_measure_ptr->ay, 2) + pow(imu_measure_ptr->az, 2));
     }
 
     //        % Magnetometer Correction - Attitude
@@ -1287,13 +1287,13 @@ int localization_filter_correction_ekf_decoupled(PLOCALIZATIONFILTERSTRUCT pFilt
     //        % Estimation, Crassidis, Markley
     //        % Rotation matrix: Strapdown Intertial navigation Technology, page 48
 
-    if(pMagnetometerMeasure->FlagValidMeasure)
+    if(magnetometer_measure_ptr->FlagValidMeasure)
     {
         // X = kf_structure.X;
-        PGMATRIX_COPY(&X_predicted, pFilterStruct->pX);
+        PGMATRIX_COPY(&X_predicted, filter_struct->pX);
 
         // P = kf_structure.P;
-        PGMATRIX_COPY(&P_predicted, pFilterStruct->pP);
+        PGMATRIX_COPY(&P_predicted, filter_struct->pP);
 
         M_norm = sqrt(pow(PGMATRIX_DATA(pM, 1, 1), 2) + pow(PGMATRIX_DATA(pM, 2, 1), 2) + pow(PGMATRIX_DATA(pM, 3, 1), 2));
         M_1 = PGMATRIX_DATA(pM, 1, 1);
@@ -1321,15 +1321,15 @@ int localization_filter_correction_ekf_decoupled(PLOCALIZATIONFILTERSTRUCT pFilt
         GMATRIX_MULTIPLY_COPY(tempMatrix3, tempMatrix, tempMatrix2);
 
         // magnetometer_measurement = [mx(k); my(k); mz(k);]/sqrt(mx(k).^2+my(k).^2+mz(k).^2)
-        GMATRIX_DATA(magnetometer_measurement, 1, 1) = pMagnetometerMeasure->mx / sqrt(pow(pMagnetometerMeasure->mx, 2) + pow(pMagnetometerMeasure->my, 2) + pow(pMagnetometerMeasure->mz, 2));
-        GMATRIX_DATA(magnetometer_measurement, 2, 1) = pMagnetometerMeasure->my / sqrt(pow(pMagnetometerMeasure->mx, 2) + pow(pMagnetometerMeasure->my, 2) + pow(pMagnetometerMeasure->mz, 2));
-        GMATRIX_DATA(magnetometer_measurement, 3, 1) = pMagnetometerMeasure->mz / sqrt(pow(pMagnetometerMeasure->mx, 2) + pow(pMagnetometerMeasure->my, 2) + pow(pMagnetometerMeasure->mz, 2));
+        GMATRIX_DATA(magnetometer_measurement, 1, 1) = magnetometer_measure_ptr->mx / sqrt(pow(magnetometer_measure_ptr->mx, 2) + pow(magnetometer_measure_ptr->my, 2) + pow(magnetometer_measure_ptr->mz, 2));
+        GMATRIX_DATA(magnetometer_measurement, 2, 1) = magnetometer_measure_ptr->my / sqrt(pow(magnetometer_measure_ptr->mx, 2) + pow(magnetometer_measure_ptr->my, 2) + pow(magnetometer_measure_ptr->mz, 2));
+        GMATRIX_DATA(magnetometer_measurement, 3, 1) = magnetometer_measure_ptr->mz / sqrt(pow(magnetometer_measure_ptr->mx, 2) + pow(magnetometer_measure_ptr->my, 2) + pow(magnetometer_measure_ptr->mz, 2));
 
         // % Calculating the inovation term directly:
         // v = [mx(k); my(k); mz(k);]/sqrt(mx(k).^2+my(k).^2+mz(k).^2) - transpose(quaternions2dcm(x(1:4, k)))*(M/norm(M));
         GMATRIX_SUBTRACT_COPY(V, magnetometer_measurement, tempMatrix3);
 
-        if (pFilterStruct->FlagEstimateAccelerometerBias)
+        if (filter_struct->FlagEstimateAccelerometerBias)
         {
             GMATRIX_SETSIZE(H ,3 ,13);
             GMATRIX_ZEROES(H);
@@ -1392,10 +1392,10 @@ int localization_filter_correction_ekf_decoupled(PLOCALIZATIONFILTERSTRUCT pFilt
 //        x_previous = x(:, k);
 //        % Update the state estimate
 //        x(:, k) = x_previous + K*v;
-        kalman_EKF_update_innovationform(pFilterStruct->pX, &X_predicted, &V, pFilterStruct->pP, &P_predicted, pFilterStruct->pR_magnetometer, &H, &MatDummy, 1);
+        kalman_EKF_update_innovationform(filter_struct->pX, &X_predicted, &V, filter_struct->pP, &P_predicted, filter_struct->pR_magnetometer, &H, &MatDummy, 1);
 
         // kf_structure.X(1:4) = quaternions_correctsign(kf_structure.X(1:4), X(1:4));
-        localization_filter_quaternionscorrectsign(pFilterStruct, &X_predicted);
+        localization_filter_quaternionscorrectsign(filter_struct, &X_predicted);
     }
 
     //        % Accelerometer Correction - Attitude
@@ -1406,10 +1406,10 @@ int localization_filter_correction_ekf_decoupled(PLOCALIZATIONFILTERSTRUCT pFilt
     if(1)
     {
         // X = kf_structure.X;
-        PGMATRIX_COPY(&X_predicted, pFilterStruct->pX);
+        PGMATRIX_COPY(&X_predicted, filter_struct->pX);
 
         // P = kf_structure.P;
-        PGMATRIX_COPY(&P_predicted, pFilterStruct->pP);
+        PGMATRIX_COPY(&P_predicted, filter_struct->pP);
 
         G_norm = sqrt(pow(PGMATRIX_DATA(pG, 1, 1), 2) + pow(PGMATRIX_DATA(pG, 2, 1), 2) + pow(PGMATRIX_DATA(pG, 3, 1), 2));
         G_1 = -1.0 * PGMATRIX_DATA(pG, 1, 1);
@@ -1437,15 +1437,15 @@ int localization_filter_correction_ekf_decoupled(PLOCALIZATIONFILTERSTRUCT pFilt
         GMATRIX_MULTIPLY_COPY(tempMatrix3, tempMatrix, tempMatrix2);
 
         // accelerometer_measurement = [mx(k); my(k); mz(k);]/sqrt(mx(k).^2+my(k).^2+mz(k).^2)
-        GMATRIX_DATA(accelerometer_measurement, 1, 1) = pIMUMeasure->ax / sqrt(pow(pIMUMeasure->ax, 2.0) + pow(pIMUMeasure->ay, 2.0) + pow(pIMUMeasure->az, 2.0));
-        GMATRIX_DATA(accelerometer_measurement, 2, 1) = pIMUMeasure->ay / sqrt(pow(pIMUMeasure->ax, 2.0) + pow(pIMUMeasure->ay, 2.0) + pow(pIMUMeasure->az, 2.0));
-        GMATRIX_DATA(accelerometer_measurement, 3, 1) = pIMUMeasure->az / sqrt(pow(pIMUMeasure->ax, 2.0) + pow(pIMUMeasure->ay, 2.0) + pow(pIMUMeasure->az, 2.0));
+        GMATRIX_DATA(accelerometer_measurement, 1, 1) = imu_measure_ptr->ax / sqrt(pow(imu_measure_ptr->ax, 2.0) + pow(imu_measure_ptr->ay, 2.0) + pow(imu_measure_ptr->az, 2.0));
+        GMATRIX_DATA(accelerometer_measurement, 2, 1) = imu_measure_ptr->ay / sqrt(pow(imu_measure_ptr->ax, 2.0) + pow(imu_measure_ptr->ay, 2.0) + pow(imu_measure_ptr->az, 2.0));
+        GMATRIX_DATA(accelerometer_measurement, 3, 1) = imu_measure_ptr->az / sqrt(pow(imu_measure_ptr->ax, 2.0) + pow(imu_measure_ptr->ay, 2.0) + pow(imu_measure_ptr->az, 2.0));
 
         // % Calculating the inovation term directly:
         // v = [ax(k); ay(k); az(k);]/sqrt(ax(k).^2+ay(k).^2+az(k).^2) - transpose(quaternions2dcm(x(1:4, k)))*(-1.0*G/norm(G));
         GMATRIX_SUBTRACT_COPY(V, accelerometer_measurement, tempMatrix3);
 
-        if (pFilterStruct->FlagEstimateAccelerometerBias)
+        if (filter_struct->FlagEstimateAccelerometerBias)
         {
             GMATRIX_SETSIZE(H, 3, 13);
             GMATRIX_ZEROES(H);
@@ -1518,34 +1518,34 @@ int localization_filter_correction_ekf_decoupled(PLOCALIZATIONFILTERSTRUCT pFilt
 //        % RC = Ts*(1-alpha)/alpha
 //        % For Ts = 0.02 and RC = 0.03 (5 Hz)
 
-        accelerometer_filtered = 0.385869545095038 * sqrt(pow(pIMUMeasure->ax, 2) + pow(pIMUMeasure->ay, 2) + pow(pIMUMeasure->az, 2)) + (1 - 0.385869545095038) * accelerometer_filtered;
+        accelerometer_filtered = 0.385869545095038 * sqrt(pow(imu_measure_ptr->ax, 2) + pow(imu_measure_ptr->ay, 2) + pow(imu_measure_ptr->az, 2)) + (1 - 0.385869545095038) * accelerometer_filtered;
         accelerometer_R = exp(20 * fabs(accelerometer_filtered - G_norm));
         if(accelerometer_R > 1000.0) accelerometer_R = 1000.0;
-        PGMATRIX_DATA(pFilterStruct->pR_accelerometer, 1, 1) = FILTER_PARAMETERS_R_ACCELEROMETER_EKF_DECOUPLED_1_1 * accelerometer_R;
-        PGMATRIX_DATA(pFilterStruct->pR_accelerometer, 2, 2) = FILTER_PARAMETERS_R_ACCELEROMETER_EKF_DECOUPLED_2_2 * accelerometer_R;
-        PGMATRIX_DATA(pFilterStruct->pR_accelerometer, 3, 3) = FILTER_PARAMETERS_R_ACCELEROMETER_EKF_DECOUPLED_3_3 * accelerometer_R;
+        PGMATRIX_DATA(filter_struct->pR_accelerometer, 1, 1) = FILTER_PARAMETERS_R_ACCELEROMETER_EKF_DECOUPLED_1_1 * accelerometer_R;
+        PGMATRIX_DATA(filter_struct->pR_accelerometer, 2, 2) = FILTER_PARAMETERS_R_ACCELEROMETER_EKF_DECOUPLED_2_2 * accelerometer_R;
+        PGMATRIX_DATA(filter_struct->pR_accelerometer, 3, 3) = FILTER_PARAMETERS_R_ACCELEROMETER_EKF_DECOUPLED_3_3 * accelerometer_R;
 
-        kalman_EKF_update_innovationform(pFilterStruct->pX, &X_predicted, &V, pFilterStruct->pP, &P_predicted, pFilterStruct->pR_accelerometer, &H, &MatDummy, 1);
+        kalman_EKF_update_innovationform(filter_struct->pX, &X_predicted, &V, filter_struct->pP, &P_predicted, filter_struct->pR_accelerometer, &H, &MatDummy, 1);
 
         // kf_structure.X(1:4) = quaternions_correctsign(kf_structure.X(1:4), X(1:4));
-        localization_filter_quaternionscorrectsign(pFilterStruct, &X_predicted);
+        localization_filter_quaternionscorrectsign(filter_struct, &X_predicted);
     }
 
     // %%% corrige usando medidas do GPS:
     // %%% Fun�ao de medi�ao: [zeros(3,4) eye(3,3) zeros(3,3)]*X
-    if(pGPSMeasure->FlagValidPositionMeasure)
+    if(gps_measure_ptr->FlagValidPositionMeasure)
     {
         // X = kf_structure.X;
-        PGMATRIX_COPY(&X_predicted, pFilterStruct->pX);
+        PGMATRIX_COPY(&X_predicted, filter_struct->pX);
 
         // P = kf_structure.P;
-        PGMATRIX_COPY(&P_predicted, pFilterStruct->pP);
+        PGMATRIX_COPY(&P_predicted, filter_struct->pP);
         // if kf_structure.flagestimateaccelerometerbias
         //     H = [zeros(3,4) eye(3,3) zeros(3,3) zeros(3,3)];
         // else
         //     H = [zeros(3,4) eye(3,3) zeros(3,3)];
         // end
-        if (pFilterStruct->FlagEstimateAccelerometerBias)
+        if (filter_struct->FlagEstimateAccelerometerBias)
         {
             GMATRIX_SETSIZE(H, 3, 13);
             GMATRIX_ZEROES(H);
@@ -1560,33 +1560,33 @@ int localization_filter_correction_ekf_decoupled(PLOCALIZATIONFILTERSTRUCT pFilt
         GMATRIX_DATA(H, 3, 7) = 1.0;
         // v = (gpsmeasure.p - H*X);
         PGMATRIX_MULTIPLY_COPY(MatDummy.pMat1, &H, &X_predicted);
-        PGMATRIX_SUBTRACT_COPY(&V, pGPSMeasure->pPosition, MatDummy.pMat1);
+        PGMATRIX_SUBTRACT_COPY(&V, gps_measure_ptr->pPosition, MatDummy.pMat1);
 
         // K = P*(H')*inv(H*P*(H') + gpsmeasure.P_p);
         // kf_structure.X = X + K*v;
         // kf_structure.P = (eye(kf_structure.Nstates) - K*H)*P;
-        PGMATRIX_COPY(&R, pGPSMeasure->pPPosition);
-        kalman_EKF_update_innovationform(pFilterStruct->pX, &X_predicted, &V, pFilterStruct->pP, &P_predicted, &R, &H, &MatDummy, 1);
+        PGMATRIX_COPY(&R, gps_measure_ptr->pPPosition);
+        kalman_EKF_update_innovationform(filter_struct->pX, &X_predicted, &V, filter_struct->pP, &P_predicted, &R, &H, &MatDummy, 1);
 
         // kf_structure.X(1:4) = quaternions_correctsign(kf_structure.X(1:4), X(1:4));
-        localization_filter_quaternionscorrectsign(pFilterStruct, &X_predicted);
+        localization_filter_quaternionscorrectsign(filter_struct, &X_predicted);
     }
 
 // %%% corrige usando medidas do GPS:
 // %%% Fun�ao de medi�ao: [zeros(3,4) zeros(3,3) eye(3,3)]*X
-    if(pGPSMeasure->FlagValidVelocityMeasure)
+    if(gps_measure_ptr->FlagValidVelocityMeasure)
     {
         // X = kf_structure.X;
-        PGMATRIX_COPY(&X_predicted, pFilterStruct->pX);
+        PGMATRIX_COPY(&X_predicted, filter_struct->pX);
 
         // P = kf_structure.P;
-        PGMATRIX_COPY(&P_predicted, pFilterStruct->pP);
+        PGMATRIX_COPY(&P_predicted, filter_struct->pP);
         // if kf_structure.flagestimateaccelerometerbias
         //     H = [zeros(3,4) zeros(3,3) eye(3,3) zeros(3,3)];
         // else
         //     H = [zeros(3,4) zeros(3,3) eye(3,3)];
         // end
-        if (pFilterStruct->FlagEstimateAccelerometerBias)
+        if (filter_struct->FlagEstimateAccelerometerBias)
         {
             GMATRIX_SETSIZE(H, 3, 13);
             GMATRIX_ZEROES(H);
@@ -1601,28 +1601,28 @@ int localization_filter_correction_ekf_decoupled(PLOCALIZATIONFILTERSTRUCT pFilt
         GMATRIX_DATA(H, 3, 10) = 1.0;
         // v = (gpsmeasure.v - H*X);
         PGMATRIX_MULTIPLY_COPY(MatDummy.pMat1, &H, &X_predicted);
-        PGMATRIX_SUBTRACT_COPY(&V, pGPSMeasure->pVelocity, MatDummy.pMat1);
+        PGMATRIX_SUBTRACT_COPY(&V, gps_measure_ptr->pVelocity, MatDummy.pMat1);
 
         // K = P*(H')*inv(H*P*(H') + gpsmeasure.P_v);
         // kf_structure.X = X + K*v;
         // kf_structure.P = (eye(kf_structure.Nstates) - K*H)*P;
-        PGMATRIX_COPY(&R, pGPSMeasure->pPVelocity);
-        kalman_EKF_update_innovationform(pFilterStruct->pX, &X_predicted, &V, pFilterStruct->pP, &P_predicted, &R, &H, &MatDummy, 1);
+        PGMATRIX_COPY(&R, gps_measure_ptr->pPVelocity);
+        kalman_EKF_update_innovationform(filter_struct->pX, &X_predicted, &V, filter_struct->pP, &P_predicted, &R, &H, &MatDummy, 1);
 
         // kf_structure.X(1:4) = quaternions_correctsign(kf_structure.X(1:4), X(1:4));
-        localization_filter_quaternionscorrectsign(pFilterStruct, &X_predicted);
+        localization_filter_quaternionscorrectsign(filter_struct, &X_predicted);
     }
 
 // %%% corrige usando medidas do sonar:
 // %%% Fun�ao de medi�ao: 2z/(q0^2 - q1^2 - q2^2 + q3^2)
 // %%% Fun�ao de medi�ao codificada em estado: X(7)/(X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2);
-    if(pSonarMeasure->FlagValidMeasure)
+    if(sonar_measure_ptr->FlagValidMeasure)
     {
         // X = kf_structure.X;
-        PGMATRIX_COPY(&X_predicted, pFilterStruct->pX);
+        PGMATRIX_COPY(&X_predicted, filter_struct->pX);
 
         // P = kf_structure.P;
-        PGMATRIX_COPY(&P_predicted, pFilterStruct->pP);
+        PGMATRIX_COPY(&P_predicted, filter_struct->pP);
         // dHdX1 = -X(7)*(((X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2))^(-2))*2*X(1);
         // dHdX2 =  X(7)*(((X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2))^(-2))*2*X(2);
         // dHdX3 =  X(7)*(((X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2))^(-2))*2*X(3);
@@ -1633,7 +1633,7 @@ int localization_filter_correction_ekf_decoupled(PLOCALIZATIONFILTERSTRUCT pFilt
         // else
         //     H = [dHdX1 dHdX2 dHdX3 dHdX4 0 0 dHdX7 0 0 0];
         // end
-        if (pFilterStruct->FlagEstimateAccelerometerBias)
+        if (filter_struct->FlagEstimateAccelerometerBias)
         {
             GMATRIX_SETSIZE(H, 1, 13);
             GMATRIX_ZEROES(H);
@@ -1656,23 +1656,23 @@ int localization_filter_correction_ekf_decoupled(PLOCALIZATIONFILTERSTRUCT pFilt
 
             // v = (sonarmeasure.range - (X(7)/(X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2)));
             GMATRIX_SETSIZE(V, 1, 1);
-            GMATRIX_DATA(V, 1, 1) = pSonarMeasure->range - GMATRIX_DATA(X_predicted, 7, 1)/aux;
+            GMATRIX_DATA(V, 1, 1) = sonar_measure_ptr->range - GMATRIX_DATA(X_predicted, 7, 1)/aux;
 
             // K = P*(H')*inv(H*P*(H') + sonarmeasure.rangevariance);
             // kf_structure.X = X + K*v;
             // kf_structure.P = (eye(kf_structure.Nstates) - K*H)*P;
             GMATRIX_SETSIZE(R, 1, 1);
-            GMATRIX_DATA(R, 1, 1) = pSonarMeasure->rangevariance;
-            kalman_EKF_update_innovationform(pFilterStruct->pX, &X_predicted, &V, pFilterStruct->pP, &P_predicted, &R, &H, &MatDummy, 1);
+            GMATRIX_DATA(R, 1, 1) = sonar_measure_ptr->rangevariance;
+            kalman_EKF_update_innovationform(filter_struct->pX, &X_predicted, &V, filter_struct->pP, &P_predicted, &R, &H, &MatDummy, 1);
 
             // kf_structure.X(1:4) = quaternions_correctsign(kf_structure.X(1:4), X(1:4));
-            localization_filter_quaternionscorrectsign(pFilterStruct, &X_predicted);
+            localization_filter_quaternionscorrectsign(filter_struct, &X_predicted);
         }
     }
-    PGMATRIX_COPY(&X_predicted, pFilterStruct->pX);
+    PGMATRIX_COPY(&X_predicted, filter_struct->pX);
 
     // P = kf_structure.P;
-    PGMATRIX_COPY(&P_predicted, pFilterStruct->pP);
+    PGMATRIX_COPY(&P_predicted, filter_struct->pP);
     // dHdX1 = 2*X(1);
     // dHdX2 = 2*X(2);
     // dHdX3 = 2*X(3);
@@ -1682,7 +1682,7 @@ int localization_filter_correction_ekf_decoupled(PLOCALIZATIONFILTERSTRUCT pFilt
     // else
     //     H = [dHdX1 dHdX2 dHdX3 dHdX4 0 0 0 0 0 0];
     // end
-    if (pFilterStruct->FlagEstimateAccelerometerBias)
+    if (filter_struct->FlagEstimateAccelerometerBias)
     {
         GMATRIX_SETSIZE(H, 1, 13);
         GMATRIX_ZEROES(H);
@@ -1706,9 +1706,9 @@ int localization_filter_correction_ekf_decoupled(PLOCALIZATIONFILTERSTRUCT pFilt
     // kf_structure.X = X + K*v;
     // kf_structure.P = (eye(kf_structure.Nstates) - K*H)*P;
     GMATRIX_SETSIZE(R, 1, 1);
-    PGMATRIX_COPY(&R, pFilterStruct->pR_pseudomeasurementnorm);
-    kalman_EKF_update_innovationform(pFilterStruct->pX, &X_predicted, &V, pFilterStruct->pP, &P_predicted, &R, &H, &MatDummy, 1);
-    localization_filter_quaternionscorrectsign(pFilterStruct, &X_predicted);
+    PGMATRIX_COPY(&R, filter_struct->pR_pseudomeasurementnorm);
+    kalman_EKF_update_innovationform(filter_struct->pX, &X_predicted, &V, filter_struct->pP, &P_predicted, &R, &H, &MatDummy, 1);
+    localization_filter_quaternionscorrectsign(filter_struct, &X_predicted);
 
     // Retorna
     return 1;
@@ -2082,7 +2082,7 @@ int localization_filter_process_model_evaluate(PGMATRIX pX, PGMATRIX pX_previous
     return 1; 
 } 
 
-int localization_triad(PQUATERNIONS pq, PIMUMEASURE pIMUMeasure, PMAGNETOMETERMEASURE pMagnetometerMeasure, PGMATRIX pM, PGMATRIX pG, PQUATERNIONS pq_previous)
+int localization_triad(PQUATERNIONS pq, ImuMeasure *imu_measure_ptr, MagnetometerMeasure *magnetometer_measure_ptr, PGMATRIX pM, PGMATRIX pG, PQUATERNIONS pq_previous)
 {
     double aux;
     GMATRIX_DECLARE(mag, 3, 1); // valores locais normalizados, para n�o alterar na origem
@@ -2104,12 +2104,12 @@ int localization_triad(PQUATERNIONS pq, PIMUMEASURE pIMUMeasure, PMAGNETOMETERME
     GMATRIX_DECLARE(R_b_i, 3, 3);
 
     // testar se medicoes do magnetometro s�o validas:
-    if(!pMagnetometerMeasure->FlagValidMeasure) return 0;
+    if(!magnetometer_measure_ptr->FlagValidMeasure) return 0;
 
     // mag = [magnetometermeasure.mx; magnetometermeasure.my; magnetometermeasure.mz];
-    GMATRIX_DATA(mag, 1, 1) = pMagnetometerMeasure->mx;
-    GMATRIX_DATA(mag, 2, 1) = pMagnetometerMeasure->my;
-    GMATRIX_DATA(mag, 3, 1) = pMagnetometerMeasure->mz;
+    GMATRIX_DATA(mag, 1, 1) = magnetometer_measure_ptr->mx;
+    GMATRIX_DATA(mag, 2, 1) = magnetometer_measure_ptr->my;
+    GMATRIX_DATA(mag, 3, 1) = magnetometer_measure_ptr->mz;
     // mag = (mag/sqrt(mag(1)^2 + mag(2)^2 + mag(3)^2));
     aux = PGMATRIX_NORM(&mag);
     if(aux == 0.0) return 0;
@@ -2122,9 +2122,9 @@ int localization_triad(PQUATERNIONS pq, PIMUMEASURE pIMUMeasure, PMAGNETOMETERME
     // acc(1) = -imumeasure.ax;
     // acc(2) = -imumeasure.ay;
     // acc(3) = -imumeasure.az;
-    GMATRIX_DATA(acc, 1, 1) = -pIMUMeasure->ax;
-    GMATRIX_DATA(acc, 2, 1) = -pIMUMeasure->ay;
-    GMATRIX_DATA(acc, 3, 1) = -pIMUMeasure->az;
+    GMATRIX_DATA(acc, 1, 1) = -imu_measure_ptr->ax;
+    GMATRIX_DATA(acc, 2, 1) = -imu_measure_ptr->ay;
+    GMATRIX_DATA(acc, 3, 1) = -imu_measure_ptr->az;
     // acc = acc/sqrt(acc(1)^2 + acc(2)^2 + acc(3)^2);
     aux = PGMATRIX_NORM(&acc);
     if(aux == 0.0) return 0;

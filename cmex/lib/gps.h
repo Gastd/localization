@@ -8,9 +8,9 @@ typedef struct{
 	PGMATRIX pVelocity;
 	PGMATRIX pPPosition;
 	PGMATRIX pPVelocity;
-} GPSMEASURE, *PGPSMEASURE;
+} GpsMeasure;
 
-int gps_init(PGPSMEASURE pGPSMeasure);
-int gps_close(PGPSMEASURE pGPSMeasure);
+int gps_init(GpsMeasure *gps_measure_ptr);
+int gps_close(GpsMeasure *gps_measure_ptr);
 
 #endif //GPS_H

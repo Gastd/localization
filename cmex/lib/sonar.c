@@ -4,25 +4,25 @@
 #include "filter_parameters.h"
 #include "sonar.h"
 
-int sonar_init(PSONARMEASURE pSonarMeasure)
+int sonar_init(SonarMeasure *sonar_measure_ptr)
 {
-	pSonarMeasure->FlagValidMeasure = 0;
-	pSonarMeasure->range = 0;
-	pSonarMeasure->rangevariance = GMATRIXMACRO_SQR(FILTER_PARAMETERS_SONAR_STANDART_DEVIATION);
+	sonar_measure_ptr->FlagValidMeasure = 0;
+	sonar_measure_ptr->range = 0;
+	sonar_measure_ptr->rangevariance = GMATRIXMACRO_SQR(FILTER_PARAMETERS_SONAR_STANDART_DEVIATION);
 
-	pSonarMeasure->pR_s2b = PGMATRIX_ALLOC(3,3);
-	pSonarMeasure->pt_s2b = PGMATRIX_ALLOC(3,1);
+	sonar_measure_ptr->pR_s2b = PGMATRIX_ALLOC(3,3);
+	sonar_measure_ptr->pt_s2b = PGMATRIX_ALLOC(3,1);
 
-	PGMATRIX_IDENTITY(pSonarMeasure->pR_s2b);
-	PGMATRIX_ZEROES(pSonarMeasure->pt_s2b);
+	PGMATRIX_IDENTITY(sonar_measure_ptr->pR_s2b);
+	PGMATRIX_ZEROES(sonar_measure_ptr->pt_s2b);
 
     return 1; 
 }                      
 
-int sonar_close(PSONARMEASURE pSonarMeasure)
+int sonar_close(SonarMeasure *sonar_measure_ptr)
 {
-	PGMATRIX_FREE(pSonarMeasure->pR_s2b);
-	PGMATRIX_FREE(pSonarMeasure->pt_s2b);
+	PGMATRIX_FREE(sonar_measure_ptr->pR_s2b);
+	PGMATRIX_FREE(sonar_measure_ptr->pt_s2b);
 
     return 1; 
 }                      

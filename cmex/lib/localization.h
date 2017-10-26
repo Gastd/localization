@@ -30,8 +30,7 @@ typedef struct{
     PGMATRIX pR_previous_cekf; // para uso com o CEKF
     PGMATRIX pA_imu_P_imu_cekf; // para uso com o CEKF
     PGMATRIX pinnovation_previous_cekf; // para uso com o CEKF
-
-}LOCALIZATIONFILTERSTRUCT, *PLOCALIZATIONFILTERSTRUCT;
+} LocalizationFilter;
 
 #define X_q0        1
 #define X_q1        2
@@ -61,10 +60,11 @@ typedef struct{
 #define LOCALIZATION_ALGORITHMCODE_UKF2     3
 #define LOCALIZATION_ALGORITHMCODE_EKF_DECOUPLED 4
 
-int localization_init(int AlgorithmCode, int FlagEstimateAccelerometerBias, PLOCALIZATIONFILTERSTRUCT pFilterStruct);
-int localization_close(PLOCALIZATIONFILTERSTRUCT pFilterStruct);
-int localization_triad(PQUATERNIONS pq, PIMUMEASURE pIMUMeasure, PMAGNETOMETERMEASURE pMagnetometerMeasure, PGMATRIX pM, PGMATRIX pG, PQUATERNIONS pq_previous);
-int localization_filter_prediction(PLOCALIZATIONFILTERSTRUCT pFilterStruct, PIMUMEASURE pIMUMeasure, PGMATRIX pG, double T);
-int localization_filter_correction(PLOCALIZATIONFILTERSTRUCT pFilterStruct, PGPSMEASURE pGPSMeasure, PIMUMEASURE pIMUMeasure, PMAGNETOMETERMEASURE pMagnetometerMeasure, PSONARMEASURE pSonarMeasure, PGMATRIX pM, PGMATRIX pG, double T);
+
+int localization_init(int AlgorithmCode, int FlagEstimateAccelerometerBias, LocalizationFilter *filter_struct);
+int localization_close(LocalizationFilter *filter_struct);
+int localization_triad(PQUATERNIONS pq, ImuMeasure *imu_measure_ptr, MagnetometerMeasure *magnetometer_measure_ptr, PGMATRIX pM, PGMATRIX pG, PQUATERNIONS pq_previous);
+int localization_filter_prediction(LocalizationFilter *filter_struct, ImuMeasure *imu_measure_ptr, PGMATRIX pG, double T);
+int localization_filter_correction(LocalizationFilter *filter_struct, GpsMeasure *gps_measure_ptr, ImuMeasure *imu_measure_ptr, MagnetometerMeasure *magnetometer_measure_ptr, SonarMeasure *sonar_measure_ptr, PGMATRIX pM, PGMATRIX pG, double T);
 
 #endif //LOCALIZATION_H

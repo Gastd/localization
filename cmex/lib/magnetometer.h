@@ -9,9 +9,9 @@ typedef struct{
 	double mxvariance;
 	double myvariance;
 	double mzvariance;
-} MAGNETOMETERMEASURE, *PMAGNETOMETERMEASURE;
+} MagnetometerMeasure;
 
-int magnetometer_init(PMAGNETOMETERMEASURE pMagnetometerMeasure);
-int magnetometer_close(PMAGNETOMETERMEASURE pMagnetometerMeasure);
+int magnetometer_init(MagnetometerMeasure *magnetometer_measure_ptr);
+int magnetometer_close(MagnetometerMeasure *magnetometer_measure_ptr);
 
 #endif //MAGNETOMETER_H

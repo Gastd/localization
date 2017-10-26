@@ -16,9 +16,9 @@ typedef struct{
     double wxvariance;
     double wyvariance;
     double wzvariance;
-} IMUMEASURE, *PIMUMEASURE;
+} ImuMeasure;
 
-int imu_init(PIMUMEASURE pIMUMeasure);
-int imu_close(PIMUMEASURE pIMUMeasure);
+int imu_init(ImuMeasure *imu_measure_ptr);
+int imu_close(ImuMeasure *imu_measure_ptr);
 
 #endif //IMU_H
