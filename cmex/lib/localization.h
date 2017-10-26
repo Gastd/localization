@@ -32,34 +32,42 @@ typedef struct{
     PGMATRIX pinnovation_previous_cekf; // para uso com o CEKF
 } LocalizationFilter;
 
-#define X_q0        1
-#define X_q1        2
-#define X_q2        3
-#define X_q3        4
-#define X_px        5
-#define X_py        6
-#define X_pz        7
-#define X_vx        8
-#define X_vy        9
-#define X_vz        10
-#define X_bax       11
-#define X_bay       12
-#define X_baz       13
+enum x_pos
+{
+    X_q0,
+    X_q1,
+    X_q2,
+    X_q3,
+    X_px,
+    X_py,
+    X_pz,
+    X_vx,
+    X_vy,
+    X_vz,
+    X_bax,
+    X_bay,
+    X_baz
+};
 
-#define U_ax        1
-#define U_ay        2
-#define U_az        3
-#define U_wx        4
-#define U_wy        5
-#define U_wz        6
+enum u_pos
+{
+    U_ax,
+    U_ay,
+    U_az,
+    U_wx,
+    U_wy,
+    U_wz
+};
 
 #define LOCALIZATION_MAXSTATESIZE           13
 
-#define LOCALIZATION_ALGORITHMCODE_EKF2     1
-#define LOCALIZATION_ALGORITHMCODE_CEKF     2
-#define LOCALIZATION_ALGORITHMCODE_UKF2     3
-#define LOCALIZATION_ALGORITHMCODE_EKF_DECOUPLED 4
-
+enum localization_flag
+{
+    LOCALIZATION_ALGORITHMCODE_EKF2,
+    LOCALIZATION_ALGORITHMCODE_CEKF,
+    LOCALIZATION_ALGORITHMCODE_UKF2,
+    LOCALIZATION_ALGORITHMCODE_EKF_DECOUPLED
+};
 
 int localization_init(int AlgorithmCode, int FlagEstimateAccelerometerBias, LocalizationFilter *filter_struct);
 int localization_close(LocalizationFilter *filter_struct);
