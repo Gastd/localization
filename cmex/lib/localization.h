@@ -51,7 +51,7 @@ enum x_pos
 
 enum u_pos
 {
-    U_ax = 1,
+    U_ax,
     U_ay,
     U_az,
     U_wx,
@@ -63,7 +63,7 @@ enum u_pos
 
 enum localization_flag
 {
-    LOCALIZATION_ALGORITHMCODE_EKF2 = 1,
+    LOCALIZATION_ALGORITHMCODE_EKF2,
     LOCALIZATION_ALGORITHMCODE_CEKF,
     LOCALIZATION_ALGORITHMCODE_UKF2,
     LOCALIZATION_ALGORITHMCODE_EKF_DECOUPLED,
