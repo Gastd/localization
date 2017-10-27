@@ -34,7 +34,7 @@ typedef struct{
 
 enum x_pos
 {
-    X_q0,
+    X_q0 = 1,
     X_q1,
     X_q2,
     X_q3,
@@ -46,27 +46,27 @@ enum x_pos
     X_vz,
     X_bax,
     X_bay,
-    X_baz
+    X_baz,
 };
 
 enum u_pos
 {
-    U_ax,
+    U_ax = 1,
     U_ay,
     U_az,
     U_wx,
     U_wy,
-    U_wz
+    U_wz,
 };
 
 #define LOCALIZATION_MAXSTATESIZE           13
 
 enum localization_flag
 {
-    LOCALIZATION_ALGORITHMCODE_EKF2,
+    LOCALIZATION_ALGORITHMCODE_EKF2 = 1,
     LOCALIZATION_ALGORITHMCODE_CEKF,
     LOCALIZATION_ALGORITHMCODE_UKF2,
-    LOCALIZATION_ALGORITHMCODE_EKF_DECOUPLED
+    LOCALIZATION_ALGORITHMCODE_EKF_DECOUPLED,
 };
 
 int localization_init(int AlgorithmCode, int FlagEstimateAccelerometerBias, LocalizationFilter *filter_struct);
