@@ -1,8 +1,19 @@
+/*****************************************************************************
+Projeto CARCARAH (UnB-Expansion)
+Arquivo: localization.c 
+Conteudo: Funções em código C relacionadas à localização.
+Autor: G. A. Borges.
+Atualizações: 
+    - 19/09/2008: criação por Geovany A. Borges, modulo sem init/close
+*****************************************************************************/
 #include "localization.h"
 #include "kalman.h"
 #include "unscentedtransform.h"
 #include "filter_parameters.h"
 
+// Definicoes de uso interno
+
+// Prototipos de funcoes internas ao modulo
 int localization_filter_prediction_cekf(LocalizationFilter *filter_struct, ImuMeasure *imu_measure_ptr, PGMATRIX pG, double T);
 int localization_filter_correction_cekf(LocalizationFilter *filter_struct, GpsMeasure *gps_measure_ptr, ImuMeasure *imu_measure_ptr, MagnetometerMeasure *magnetometer_measure_ptr, SonarMeasure *sonar_measure_ptr, PGMATRIX pM, PGMATRIX pG, double T);
 int localization_filter_prediction_ekf2(LocalizationFilter *filter_struct, ImuMeasure *imu_measure_ptr, PGMATRIX pG, double T);
@@ -17,6 +28,19 @@ int localization_filter_observation_model_triad_evaluate(PGMATRIX pYm, Localizat
 void localization_filter_quaternionscorrectsign(LocalizationFilter *filter_struct, PGMATRIX pX_predicted);
 int localization_converted_measurement_triad_dg_du_imu(PGMATRIX pdg_du_imu, PGMATRIX pX_predicted, PGMATRIX pP_predicted, ImuMeasure *imu_measure_ptr, MagnetometerMeasure *magnetometer_measure_ptr, PGMATRIX pM, PGMATRIX pG, int FlagEstimateAccelerometerBias);
 
+// Variaveis globais do módulo
+
+/*****************************************************************************
+******************************************************************************
+** FUNCOES COM CHAMADA EXTERNA
+******************************************************************************
+*****************************************************************************/
+
+/*****************************************************************************
+*** int localization_init(int AlgorithmCode, int FlagEstimateAccelerometerBias, PLOCALIZATIONFILTERSTRUCT pFilterStruct)
+*** Entradas: 
+*** Saidas:
+*****************************************************************************/
 int localization_init(int AlgorithmCode, int FlagEstimateAccelerometerBias, LocalizationFilter *filter_struct)
 {
     // Iniciar componentes da estrutura do filtro
@@ -115,6 +139,11 @@ int localization_init(int AlgorithmCode, int FlagEstimateAccelerometerBias, Loca
     return 1; 
 }
 
+/*****************************************************************************
+*** int localization_close(PLOCALIZATIONFILTERSTRUCT pFilterStruct)
+*** Entradas: 
+*** Saidas:
+*****************************************************************************/
 int localization_close(LocalizationFilter *filter_struct)
 {
     // Desalocar componentes da estrutura do filtro
@@ -148,6 +177,11 @@ int localization_close(LocalizationFilter *filter_struct)
     return 1; 
 }
 
+/*****************************************************************************
+*** int localization_filter_correction(PLOCALIZATIONFILTERSTRUCT pFilterStruct, PGPSMEASURE pGPSMeasure, PIMUMEASURE pIMUMeasure, PMAGNETOMETERMEASURE pMagnetometerMeasure, PSONARMEASURE pSonarMeasure, PGMATRIX pM, PGMATRIX pG, double T)
+*** Entradas: 
+*** Saidas:
+*****************************************************************************/
 int localization_filter_correction(LocalizationFilter *filter_struct, GpsMeasure *gps_measure_ptr, ImuMeasure *imu_measure_ptr, MagnetometerMeasure *magnetometer_measure_ptr, SonarMeasure *sonar_measure_ptr, PGMATRIX pM, PGMATRIX pG, double T)
 {
     // Corre��o conforme a arquitetura
@@ -342,8 +376,8 @@ int localization_filter_correction_cekf(LocalizationFilter *filter_struct, GpsMe
         localization_filter_quaternionscorrectsign(filter_struct, &X_predicted);
     }
 
-// %%% corrige usando medidas do GPS:
-// %%% Fun�ao de medi�ao: [zeros(3,4) zeros(3,3) eye(3,3)]*X
+    // %%% corrige usando medidas do GPS:
+    // %%% Fun�ao de medi�ao: [zeros(3,4) zeros(3,3) eye(3,3)]*X
     if(gps_measure_ptr->FlagValidVelocityMeasure)
     {
         // X = kf_structure.X;
@@ -383,9 +417,9 @@ int localization_filter_correction_cekf(LocalizationFilter *filter_struct, GpsMe
         localization_filter_quaternionscorrectsign(filter_struct, &X_predicted);
     }
 
-// %%% corrige usando medidas do sonar:
-// %%% Fun�ao de medi�ao: 2z/(q0^2 - q1^2 - q2^2 + q3^2)
-// %%% Fun�ao de medi�ao codificada em estado: X(7)/(X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2);
+    // %%% corrige usando medidas do sonar:
+    // %%% Fun�ao de medi�ao: 2z/(q0^2 - q1^2 - q2^2 + q3^2)
+    // %%% Fun�ao de medi�ao codificada em estado: X(7)/(X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2);
     if(sonar_measure_ptr->FlagValidMeasure)
     {
         // X = kf_structure.X;
@@ -439,9 +473,10 @@ int localization_filter_correction_cekf(LocalizationFilter *filter_struct, GpsMe
             localization_filter_quaternionscorrectsign(filter_struct, &X_predicted);
         }
     }
-// %%% corrige a norma do quaternion usando pseudo-medi�oes:
-// %%% Fun�ao de medi�ao: 1 = q0^2 + q1^2 + q2^2 + q3^2
-// %%% Fun�ao de medi�ao codificada em estado: X(1)^2 + X(2)^2 + X(3)^2 + X(4)^2;
+
+    // %%% corrige a norma do quaternion usando pseudo-medi�oes:
+    // %%% Fun�ao de medi�ao: 1 = q0^2 + q1^2 + q2^2 + q3^2
+    // %%% Fun�ao de medi�ao codificada em estado: X(1)^2 + X(2)^2 + X(3)^2 + X(4)^2;
     // X = kf_structure.X;
     PGMATRIX_COPY(&X_predicted, filter_struct->pX);
 
@@ -550,8 +585,8 @@ int localization_filter_correction_ekf2(LocalizationFilter *filter_struct, GpsMe
         GMATRIX_SETSIZE(Ym, 4, 1);
         GMATRIX_SETSIZE(Py, 4, 4);
         localization_converted_measurement_triad(&Ym, &Py, &X_predicted, &P_predicted, imu_measure_ptr, magnetometer_measure_ptr, pM, pG, filter_struct->FlagEstimateAccelerometerBias);
-//      GMATRIX_PRINT_MATLABFORM(Ym);
-//      GMATRIX_PRINT_MATLABFORM(Py);
+     // GMATRIX_PRINT_MATLABFORM(Ym);
+     // GMATRIX_PRINT_MATLABFORM(Py);
 
         // v = (Ym - H*X);
         PGMATRIX_MULTIPLY_COPY(MatDummy.pMat1, &H, &X_predicted);
@@ -608,8 +643,8 @@ int localization_filter_correction_ekf2(LocalizationFilter *filter_struct, GpsMe
         localization_filter_quaternionscorrectsign(filter_struct, &X_predicted);
     }
 
-// %%% corrige usando medidas do GPS:
-// %%% Fun�ao de medi�ao: [zeros(3,4) zeros(3,3) eye(3,3)]*X
+    // %%% corrige usando medidas do GPS:
+    // %%% Fun�ao de medi�ao: [zeros(3,4) zeros(3,3) eye(3,3)]*X
     if(gps_measure_ptr->FlagValidVelocityMeasure)
     {
         // X = kf_structure.X;
@@ -649,9 +684,9 @@ int localization_filter_correction_ekf2(LocalizationFilter *filter_struct, GpsMe
         localization_filter_quaternionscorrectsign(filter_struct, &X_predicted);
     }
 
-// %%% corrige usando medidas do sonar:
-// %%% Fun�ao de medi�ao: 2z/(q0^2 - q1^2 - q2^2 + q3^2)
-// %%% Fun�ao de medi�ao codificada em estado: X(7)/(X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2);
+    // %%% corrige usando medidas do sonar:
+    // %%% Fun�ao de medi�ao: 2z/(q0^2 - q1^2 - q2^2 + q3^2)
+    // %%% Fun�ao de medi�ao codificada em estado: X(7)/(X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2);
     if(sonar_measure_ptr->FlagValidMeasure)
     {
         // X = kf_structure.X;
@@ -705,9 +740,9 @@ int localization_filter_correction_ekf2(LocalizationFilter *filter_struct, GpsMe
             localization_filter_quaternionscorrectsign(filter_struct, &X_predicted);
         }
     }
-// %%% corrige a norma do quaternion usando pseudo-medi�oes:
-// %%% Fun�ao de medi�ao: 1 = q0^2 + q1^2 + q2^2 + q3^2
-// %%% Fun�ao de medi�ao codificada em estado: X(1)^2 + X(2)^2 + X(3)^2 + X(4)^2;
+    // %%% corrige a norma do quaternion usando pseudo-medi�oes:
+    // %%% Fun�ao de medi�ao: 1 = q0^2 + q1^2 + q2^2 + q3^2
+    // %%% Fun�ao de medi�ao codificada em estado: X(1)^2 + X(2)^2 + X(3)^2 + X(4)^2;
     // X = kf_structure.X;
     PGMATRIX_COPY(&X_predicted, filter_struct->pX);
 
@@ -821,7 +856,6 @@ int localization_converted_measurement_triad(PGMATRIX pYm, PGMATRIX pPy, PGMATRI
     /* Nesse caso, ser� aplicada a unscented transform para o seguinte problema:
             Y = f(Z)
        com Z = [X; u_imu_acc; u_mag] e Pz = diag[Px, Pu_imu_acc, Pu_mag];
-
     */
 
     int i;
@@ -1009,14 +1043,16 @@ int localization_filter_prediction_cekf(LocalizationFilter *filter_struct, ImuMe
     GMATRIX_DECLARE(MatDummy1, LOCALIZATION_MAXSTATESIZE, LOCALIZATION_MAXSTATESIZE);
     GMATRIX_DECLARE(MatDummy2, LOCALIZATION_MAXSTATESIZE, LOCALIZATION_MAXSTATESIZE);
 
-    /*filter_struct->pS_previous_cekf = PGMATRIX_ALLOC(filter_struct->Nstates,4);
+    /*
+        filter_struct->pS_previous_cekf = PGMATRIX_ALLOC(filter_struct->Nstates,4);
         PGMATRIX_ZEROES(filter_struct->pS_previous_cekf);
         filter_struct->pR_previous_cekf = PGMATRIX_ALLOC(4,4);
         PGMATRIX_IDENTITY(filter_struct->pR_previous_cekf);
         filter_struct->pA_imu_P_imu_cekf = PGMATRIX_ALLOC(filter_struct->Nstates,6);
         PGMATRIX_ZEROES(filter_struct->pA_imu_P_imu_cekf);
         filter_struct->pinnovation_previous_cekf = PGMATRIX_ALLOC(4,1);
-        PGMATRIX_ZEROES(filter_struct->pinnovation_previous_cekf);*/
+        PGMATRIX_ZEROES(filter_struct->pinnovation_previous_cekf);
+    */
 
     // Defini��o dos tamanhos das matrizes deve ser feito aqui, o que evita aloca��o dim�mica
     GMATRIX_SETSIZE(X_previous, filter_struct->Nstates, 1);
@@ -1384,25 +1420,25 @@ int localization_filter_correction_ekf_decoupled(LocalizationFilter *filter_stru
         GMATRIX_DATA(H, 2, 4) = (2.0 * M_3 / M_norm) * q2 - (2.0 * M_2 / M_norm) * q3 - (2.0 * M_3 / M_norm) * q0;
         GMATRIX_DATA(H, 3, 4) = (2.0 * M_1 / M_norm) * q1 + (2.0 * M_2 / M_norm) * q2 + (2.0 * M_3 / M_norm) * q3;
 
-//        % Calculate the innovation covariance S
-//        S = H*P*transpose(H)+ magnetometer_R;
-//        % Kalman gain
-//        K = P*transpose(H)*inv(S);
-//        % Save previous estimate so we can correct the quaternion sign
-//        x_previous = x(:, k);
-//        % Update the state estimate
-//        x(:, k) = x_previous + K*v;
+       // % Calculate the innovation covariance S
+       // S = H*P*transpose(H)+ magnetometer_R;
+       // % Kalman gain
+       // K = P*transpose(H)*inv(S);
+       // % Save previous estimate so we can correct the quaternion sign
+       // x_previous = x(:, k);
+       // % Update the state estimate
+       // x(:, k) = x_previous + K*v;
         kalman_EKF_update_innovationform(filter_struct->pX, &X_predicted, &V, filter_struct->pP, &P_predicted, filter_struct->pR_magnetometer, &H, &MatDummy, 1);
 
         // kf_structure.X(1:4) = quaternions_correctsign(kf_structure.X(1:4), X(1:4));
         localization_filter_quaternionscorrectsign(filter_struct, &X_predicted);
     }
 
-    //        % Accelerometer Correction - Attitude
-    //    if accelerometer_validmeasure(k) == 1
-    //        % H is the measurement function for the accelerometer - in this
-    //        % case, we have the same as the magnetometer. See above for
-    //        % details.
+       //     % Accelerometer Correction - Attitude
+       // if accelerometer_validmeasure(k) == 1
+       //     % H is the measurement function for the accelerometer - in this
+       //     % case, we have the same as the magnetometer. See above for
+       //     % details.
     if(1)
     {
         // X = kf_structure.X;
@@ -1500,23 +1536,23 @@ int localization_filter_correction_ekf_decoupled(LocalizationFilter *filter_stru
         GMATRIX_DATA(H, 2, 4) = (2.0 * G_3 / G_norm) * q2 - (2.0 * G_2 / G_norm) * q3 - (2.0 * G_3 / G_norm) * q0;
         GMATRIX_DATA(H, 3, 4) = (2.0 * G_1 / G_norm) * q1 + (2.0 * G_2 / G_norm) * q2 + (2.0 * G_3 / G_norm) * q3;
 
-//        % Calculate the innovation covariance S
-//        S = H*P*transpose(H)+ magnetometer_R;
-//        % Kalman gain
-//        K = P*transpose(H)*inv(S);
-//        % Save previous estimate so we can correct the quaternion sign
-//        x_previous = x(:, k);
-//        % Update the state estimate
-//        x(:, k) = x_previous + K*v;
+       // % Calculate the innovation covariance S
+       // S = H*P*transpose(H)+ magnetometer_R;
+       // % Kalman gain
+       // K = P*transpose(H)*inv(S);
+       // % Save previous estimate so we can correct the quaternion sign
+       // x_previous = x(:, k);
+       // % Update the state estimate
+       // x(:, k) = x_previous + K*v;
 
         // Modulate the accelerometer R matrix based on how far we are from the gravity vector
-//        % OK, here comes another trick. We modulate the R matrix based on
-//        % how far off it is from the expected G measurement. The idea is to
-//        % trust it only in steady-state conditions.
-//        % To do so, we first do a low-pass filter in the accelerometer
-//        % measurements:
-//        % RC = Ts*(1-alpha)/alpha
-//        % For Ts = 0.02 and RC = 0.03 (5 Hz)
+       // % OK, here comes another trick. We modulate the R matrix based on
+       // % how far off it is from the expected G measurement. The idea is to
+       // % trust it only in steady-state conditions.
+       // % To do so, we first do a low-pass filter in the accelerometer
+       // % measurements:
+       // % RC = Ts*(1-alpha)/alpha
+       // % For Ts = 0.02 and RC = 0.03 (5 Hz)
 
         accelerometer_filtered = 0.385869545095038 * sqrt(pow(imu_measure_ptr->ax, 2) + pow(imu_measure_ptr->ay, 2) + pow(imu_measure_ptr->az, 2)) + (1 - 0.385869545095038) * accelerometer_filtered;
         accelerometer_R = exp(20 * fabs(accelerometer_filtered - G_norm));
@@ -1572,8 +1608,8 @@ int localization_filter_correction_ekf_decoupled(LocalizationFilter *filter_stru
         localization_filter_quaternionscorrectsign(filter_struct, &X_predicted);
     }
 
-// %%% corrige usando medidas do GPS:
-// %%% Fun�ao de medi�ao: [zeros(3,4) zeros(3,3) eye(3,3)]*X
+    // %%% corrige usando medidas do GPS:
+    // %%% Fun�ao de medi�ao: [zeros(3,4) zeros(3,3) eye(3,3)]*X
     if(gps_measure_ptr->FlagValidVelocityMeasure)
     {
         // X = kf_structure.X;
@@ -1613,9 +1649,9 @@ int localization_filter_correction_ekf_decoupled(LocalizationFilter *filter_stru
         localization_filter_quaternionscorrectsign(filter_struct, &X_predicted);
     }
 
-// %%% corrige usando medidas do sonar:
-// %%% Fun�ao de medi�ao: 2z/(q0^2 - q1^2 - q2^2 + q3^2)
-// %%% Fun�ao de medi�ao codificada em estado: X(7)/(X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2);
+    // %%% corrige usando medidas do sonar:
+    // %%% Fun�ao de medi�ao: 2z/(q0^2 - q1^2 - q2^2 + q3^2)
+    // %%% Fun�ao de medi�ao codificada em estado: X(7)/(X(1)^2 - X(2)^2 - X(3)^2 + X(4)^2);
     if(sonar_measure_ptr->FlagValidMeasure)
     {
         // X = kf_structure.X;
@@ -1821,7 +1857,8 @@ int localization_filter_process_model_df_dx(PGMATRIX pdf_dx, PGMATRIX pX_previou
     PGMATRIX_ZEROES(pdf_dx);
 
     // %Atualiza a atitude
-    if (a>0.0){
+    if (a>0.0)
+    {
         PGMATRIX_DATA(pdf_dx, 1, 1) = ca2;
         PGMATRIX_DATA(pdf_dx, 1, 2) = -(sa2 / a) * sx;
         PGMATRIX_DATA(pdf_dx, 1, 3) = -(sa2 / a) * sy;
@@ -1842,7 +1879,8 @@ int localization_filter_process_model_df_dx(PGMATRIX pdf_dx, PGMATRIX pX_previou
         PGMATRIX_DATA(pdf_dx, 4, 3) = (sa2 / a) * sx;
         PGMATRIX_DATA(pdf_dx, 4, 4) = ca2;
     }
-    else{
+    else
+    {
         PGMATRIX_DATA(pdf_dx, 1, 1) = 1.0;
         PGMATRIX_DATA(pdf_dx, 2, 2) = 1.0;
         PGMATRIX_DATA(pdf_dx, 3, 3) = 1.0;
@@ -2081,7 +2119,11 @@ int localization_filter_process_model_evaluate(PGMATRIX pX, PGMATRIX pX_previous
     // Retorna
     return 1; 
 } 
-
+/*****************************************************************************
+*** int localization_triad(PQUATERNIONS pq, PIMUMEASURE pIMUMeasure, PMAGNETOMETERMEASURE pMagnetometerMeasure, PGMATRIX pM, PGMATRIX pG, PQUATERNIONS pq_previous)
+*** Entradas: 
+*** Saidas:
+*****************************************************************************/
 int localization_triad(PQUATERNIONS pq, ImuMeasure *imu_measure_ptr, MagnetometerMeasure *magnetometer_measure_ptr, PGMATRIX pM, PGMATRIX pG, PQUATERNIONS pq_previous)
 {
     double aux;
