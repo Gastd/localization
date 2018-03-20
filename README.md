@@ -6,6 +6,8 @@ localization
 Dependencies
 ------------
 <!-- * Only [pthreads](https://en.wikipedia.org/wiki/POSIX_Threads), that is usually installed within any Linux system. -->
+* [GMatrix](https://github.com/lara-unb/gMatrix)
+* [GDataLogger](https://github.com/lara-unb/gdatalogger)
 
 Usage
 -----
