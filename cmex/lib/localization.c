@@ -877,7 +877,7 @@ int localization_converted_measurement_triad(PGMATRIX pYm, PGMATRIX pPy, PGMATRI
     GMATRIX_SETSIZE(_utWSamples, (1), (2*(pX_predicted->Nr + 6) + 1));
     GMATRIX_SETSIZE(_utQSamples, (pX_predicted->Nr + 6),  (pX_predicted->Nr + 6));
 
-    for(i=1;i<=pX_predicted->Nr; +  + i)
+    for(i = 1; i <= pX_predicted->Nr; ++i)
     {
         GMATRIX_DATA(XMean, i, 1) = PGMATRIX_DATA(pX_predicted, i, 1);
     }
