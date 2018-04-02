@@ -30,7 +30,7 @@ ExternalProject_Add(localization
 )
 # ExternalProject_Get_Property(localization install_dir)
 ExternalProject_Get_Property(localization binary_dir)
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/localization-src/cmex/lib)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/localization-src/include)
 
 add_executable( <YOUR_EXECUTABLE> <YOUR_CODE>.cpp )
 add_dependencies( <YOUR_EXECUTABLE> localization )
