@@ -12,24 +12,25 @@
 #include "magnetometer.h"
 #include "rotation.h"
 
-typedef struct{
+typedef struct
+{
     int AlgorithmCode;
     int FlagEstimateAccelerometerBias;
     int Nstates;
     PGMATRIX pX;
     PGMATRIX pP;
-    PGMATRIX pPreset; // para o caso de reset dos filtros
-    PGMATRIX pXsigma_ukf; // para o caso de UKF
-    PGMATRIX pWsigma_ukf; // para o caso de UKF
+    PGMATRIX pPreset;                       // para o caso de reset dos filtros
+    PGMATRIX pXsigma_ukf;                   // para o caso de UKF
+    PGMATRIX pWsigma_ukf;                   // para o caso de UKF
     PGMATRIX pQ;
     PGMATRIX pR_convertedmeasurementtriad;
     PGMATRIX pR_pseudomeasurementnorm;
-    PGMATRIX pR_magnetometer; // to use with EKF Decoupled
-    PGMATRIX pR_accelerometer; // to use with EKF Decoupled
-    PGMATRIX pS_previous_cekf; // para uso com o CEKF
-    PGMATRIX pR_previous_cekf; // para uso com o CEKF
-    PGMATRIX pA_imu_P_imu_cekf; // para uso com o CEKF
-    PGMATRIX pinnovation_previous_cekf; // para uso com o CEKF
+    PGMATRIX pR_magnetometer;               // to use with EKF Decoupled
+    PGMATRIX pR_accelerometer;              // to use with EKF Decoupled
+    PGMATRIX pS_previous_cekf;              // para uso com o CEKF
+    PGMATRIX pR_previous_cekf;              // para uso com o CEKF
+    PGMATRIX pA_imu_P_imu_cekf;             // para uso com o CEKF
+    PGMATRIX pinnovation_previous_cekf;     // para uso com o CEKF
 } LocalizationFilter;
 
 enum x_pos
@@ -59,7 +60,7 @@ enum u_pos
     U_wz,
 };
 
-#define LOCALIZATION_MAXSTATESIZE           13
+#define LOCALIZATION_MAXSTATESIZE   13
 
 enum localization_flag
 {
