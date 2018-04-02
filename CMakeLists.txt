@@ -5,17 +5,17 @@ include_directories(include)
 add_definitions(-Wall -O3 -g -DUNIX -DLINUX -D_REENTRANT)
 
 set(SOURCES
-    cmex/lib/gmatrix_linalg.c
-    cmex/lib/gmatrix_sparse.c
-    cmex/lib/gmatrix_statistics.c
-    cmex/lib/gmatrix.c
-    cmex/lib/gps.c
-    cmex/lib/imu.c
-    cmex/lib/kalman.c
-    cmex/lib/localization.c
-    cmex/lib/magnetometer.c
-    cmex/lib/rotation.c
-    cmex/lib/sonar.c
+    src/gmatrix_linalg.c
+    src/gmatrix_sparse.c
+    src/gmatrix_statistics.c
+    src/gmatrix.c
+    src/gps.c
+    src/imu.c
+    src/kalman.c
+    src/localization.c
+    src/magnetometer.c
+    src/rotation.c
+    src/sonar.c
 )
 
 add_library(localization STATIC ${SOURCES})
