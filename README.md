@@ -29,13 +29,13 @@ ExternalProject_Add(localization
     TEST_COMMAND ""
 )
 # ExternalProject_Get_Property(localization install_dir)
-ExternalProject_Get_Property(localization binary_dir)
+ExternalProject_Get_Property(localization source_dir)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/localization-src/include)
 
 add_executable( <YOUR_EXECUTABLE> <YOUR_CODE>.cpp )
 add_dependencies( <YOUR_EXECUTABLE> localization )
 target_link_libraries( <YOUR_EXECUTABLE>
-  ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}localization.a
+  ${source_dir}/lib/${CMAKE_FIND_LIBRARY_PREFIXES}localization.a
 )
 ```
 
