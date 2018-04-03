@@ -18,4 +18,6 @@ set(SOURCES
     src/sonar.c
 )
 
+file(MAKE_DIRECTORY "lib")
+set(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/lib)
 add_library(localization STATIC ${SOURCES})
